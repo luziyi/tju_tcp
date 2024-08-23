@@ -68,6 +68,7 @@ void free_packet(tju_packet_t* packet);
  根据各个字段的偏移量
  找到并返回对应的字段
 */ 
+uint32_t isn_gen();
 uint16_t get_src(char* msg);
 uint16_t get_dst(char* msg);
 uint32_t get_seq(char* msg);
@@ -77,7 +78,6 @@ uint16_t get_plen(char* msg);
 uint8_t get_flags(char* msg);
 uint16_t get_advertised_window(char* msg);
 uint8_t get_ext(char* msg);
-
 
 /*############################################## 下面是实现上面函数功能的辅助函数 用户没必要调用 ##############################################*/
 char* packet_to_buf(tju_packet_t* packet);
