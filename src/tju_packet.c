@@ -56,7 +56,6 @@ char *create_packet_buf(uint16_t src, uint16_t dst, uint32_t seq, uint32_t ack,
                          data, len);
 
     final = packet_to_buf(temp);
-
     free_packet(temp);
     return final;
 }
