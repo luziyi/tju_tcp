@@ -46,6 +46,7 @@ int tju_bind(tju_tcp_t *sock, tju_sock_addr bind_addr)
 */
 int tju_listen(tju_tcp_t *sock)
 {
+    accept_queue_num = 0;
     sock->state = LISTEN;
     int hashval = cal_hash(sock->bind_addr.ip, sock->bind_addr.port, 0, 0);
     listen_socks[hashval] = sock;
@@ -60,41 +61,46 @@ int tju_listen(tju_tcp_t *sock)
 */
 tju_tcp_t *tju_accept(tju_tcp_t *listen_sock)
 {
-    while(listen_sock->state != SYN_RECV); // 阻塞 直到有SYN_RECV的socket
-    
-    tju_tcp_t *new_conn = (tju_tcp_t *)malloc(sizeof(tju_tcp_t));
-    memcpy(new_conn, listen_sock, sizeof(tju_tcp_t));
+    // while (listen_sock->state != SYN_RECV)
+    //     ; // 阻塞 直到有SYN_RECV的socket
 
-    tju_sock_addr local_addr, remote_addr;
+    // tju_tcp_t *new_conn = (tju_tcp_t *)malloc(sizeof(tju_tcp_t));
+    // memcpy(new_conn, listen_sock, sizeof(tju_tcp_t));
 
-    // 创建SYN_ACK报文
-    /*
-     这里涉及到TCP连接的建立
-     正常来说应该是收到客户端发来的SYN报文
-     从中拿到对端的IP和PORT
-     换句话说 下面的处理流程其实不应该放在这里 应该在tju_handle_packet中
-    */
-    remote_addr.ip = inet_network("10.0.0.2"); // 具体的IP地址
-    remote_addr.port = 5678;                   // 端口
+    // tju_sock_addr local_addr, remote_addr;
 
-    local_addr.ip = listen_sock->bind_addr.ip;     // 具体的IP地址
-    local_addr.port = listen_sock->bind_addr.port; // 端口
+    // // 创建SYN_ACK报文
+    // /*
+    //  这里涉及到TCP连接的建立
+    //  正常来说应该是收到客户端发来的SYN报文
+    //  从中拿到对端的IP和PORT
+    //  换句话说 下面的处理流程其实不应该放在这里 应该在tju_handle_packet中
+    // */
+    // remote_addr.ip = inet_network("10.0.0.2"); // 具体的IP地址
+    // remote_addr.port = 5678;                   // 端口
 
-    new_conn->established_local_addr = local_addr;
-    new_conn->established_remote_addr = remote_addr;
+    // local_addr.ip = listen_sock->bind_addr.ip;     // 具体的IP地址
+    // local_addr.port = listen_sock->bind_addr.port; // 端口
 
-    // 这里应该是经过三次握手后才能修改状态为ESTABLISHED
-    new_conn->state = ESTABLISHED;
+    // new_conn->established_local_addr = local_addr;
+    // new_conn->established_remote_addr = remote_addr;
 
-    // 将新的conn放到内核建立连接的socket哈希表中
-    int hashval = cal_hash(local_addr.ip, local_addr.port, remote_addr.ip, remote_addr.port);
-    established_socks[hashval] = new_conn;
+    // // 这里应该是经过三次握手后才能修改状态为ESTABLISHED
+    // new_conn->state = ESTABLISHED;
 
-    // 如果new_conn的创建过程放到了tju_handle_packet中
-    // 那么accept怎么拿到这个new_conn呢 在linux中 每个listen
-    // socket都维护一个已经完成连接的socket队列 每次调用accept
-    // 实际上就是取出这个队列中的一个元素 队列为空,则阻塞
-    return new_conn;
+    // // 将新的conn放到内核建立连接的socket哈希表中
+    // int hashval = cal_hash(local_addr.ip, local_addr.port, remote_addr.ip, remote_addr.port);
+    // established_socks[hashval] = new_conn;
+
+    // // 如果new_conn的创建过程放到了tju_handle_packet中
+    // // 那么accept怎么拿到这个new_conn呢 在linux中 每个listen
+    // // socket都维护一个已经完成连接的socket队列 每次调用accept
+    // // 实际上就是取出这个队列中的一个元素 队列为空,则阻塞
+
+    while (accept_queue_num == 0)
+        ;
+    accept_queue_num--;
+    return accept_queue[accept_queue_num];
 }
 
 /*
@@ -112,6 +118,8 @@ int tju_connect(tju_tcp_t *sock, tju_sock_addr target_addr)
     local_addr.port = 5678; // 连接方进行connect连接的时候 内核中是随机分配一个可用的端口
     sock->established_local_addr = local_addr;
     sock->established_remote_addr = target_addr;
+    int hashval = cal_hash(local_addr.ip, local_addr.port, target_addr.ip, target_addr.port);
+    established_socks[hashval] = sock;
     // 这里也不能直接建立连接 需要经过三次握手
     // 实际在linux中 connect调用后 会进入一个while循环
     // 循环跳出的条件是socket的状态变为ESTABLISHED 表面看上去就是 正在连接中
@@ -119,19 +127,15 @@ int tju_connect(tju_tcp_t *sock, tju_sock_addr target_addr)
 
     // 调用isn生成初始化isn
     char *msg = create_packet_buf(sock->established_local_addr.port, target_addr.port, 1, 0, DEFAULT_HEADER_LEN,
-                                  DEFAULT_HEADER_LEN + 0, SYN_FLAG_MASK, 1, 0, NULL, 0);
-    int msg_len = strlen(msg);
-    sendToLayer3(msg, msg_len);
+                                  DEFAULT_HEADER_LEN, SYN_FLAG_MASK, 1, 0, NULL, 0);
+    sendToLayer3(msg, DEFAULT_HEADER_LEN);
+
     sock->state = SYN_SENT;
     printf("client:SYN_SENT\n");
 
     while (sock->state != ESTABLISHED)
         ;
-
-    // 将建立了连接的socket放入内核 已建立连接哈希表中
-    int hashval = cal_hash(local_addr.ip, local_addr.port, target_addr.ip, target_addr.port);
-    established_socks[hashval] = sock;
-
+    // 超时处理 todo
     return 0;
 }
 
@@ -222,17 +226,53 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
 
     pthread_mutex_unlock(&(sock->recv_lock)); // 解锁
 
-
     switch (sock->state)
     {
     case LISTEN:
         if (flag == SYN_FLAG_MASK)
         {
-            printf("SYN_FLAG RECEIVED : %d\n", flag);
+            printf("server: SYN received!\n");
             sock->state = SYN_RECV;
-            char *pkt = create_packet_buf(dst_port, src_port, ack + 1, seq + 1, DEFAULT_HEADER_LEN,
-                                              DEFAULT_HEADER_LEN, SYN_FLAG_MASK | ACK_FLAG_MASK, 1, 0, NULL, 0);
-            sendToLayer3(pkt, strlen(pkt));
+            char *pkt = create_packet_buf(dst_port, src_port, ack, seq + 1, DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN,
+                                          SYN_FLAG_MASK | ACK_FLAG_MASK, 1, 0, NULL, 0);
+            sendToLayer3(pkt, DEFAULT_HEADER_LEN);
+        }
+        break;
+    case SYN_SENT:
+        if (flag == SYN_FLAG_MASK | ACK_FLAG_MASK)
+        {
+            printf("client: SYN_ACK received!\n");
+            char *pkt = create_packet_buf(dst_port, src_port, ack, seq + 1, DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN,
+                                          ACK_FLAG_MASK, 1, 0, NULL, 0);
+            sendToLayer3(pkt, DEFAULT_HEADER_LEN);
+        }
+        break;
+    case SYN_RECV:
+        if (flag == ACK_FLAG_MASK)
+        {
+            printf("server: ACK received!");
+            tju_tcp_t *new_conn = (tju_tcp_t *)malloc(sizeof(tju_tcp_t));
+            memcpy(new_conn, sock, sizeof(tju_tcp_t));
+
+            tju_sock_addr local_addr, remote_addr;
+
+            remote_addr.ip = inet_network("10.0.0.2");
+            printf("src port: %d", src_port);
+            remote_addr.port = src_port;
+
+            local_addr.ip = sock->bind_addr.ip;
+            local_addr.port = sock->bind_addr.port;
+
+            new_conn->established_local_addr = local_addr;
+            new_conn->established_remote_addr = remote_addr;
+
+            new_conn->state = ESTABLISHED;
+
+            int hashval = cal_hash(local_addr.ip, local_addr.port, remote_addr.ip, remote_addr.port);
+            established_socks[hashval] = new_conn;
+
+            accept_queue[accept_queue_num] = new_conn;
+            accept_queue_num++;
         }
         break;
     }

@@ -4,7 +4,6 @@
 */
 void onTCPPocket(char *pkt)
 {
-    printf("onTCPPocket\n"); // 没有被调用
     // 当我们收到TCP包时 包中 源IP 源端口 是发送方的 也就是我们眼里的
     // 远程(remote) IP和端口
     uint16_t remote_port = get_src(pkt);
@@ -106,7 +105,6 @@ void *receive_thread(void *arg)
 
     while (1)
     {
-        printf("working\n");
         // MSG_PEEK 表示看一眼 不会把数据从缓冲区删除
         len = recvfrom(BACKEND_UDPSOCKET_ID, hdr, DEFAULT_HEADER_LEN, MSG_PEEK, (struct sockaddr *)&from_addr,
                        &from_addr_size);
@@ -122,7 +120,7 @@ void *receive_thread(void *arg)
                              (struct sockaddr *)&from_addr, &from_addr_size);
                 buf_size = buf_size + n;
             }
-            printf("receive_thread: received a packet\n");
+            // printf("receive_thread: received a packet\n");
             // 通知内核收到一个完整的TCP报文
             onTCPPocket(pkt);
             free(pkt);
