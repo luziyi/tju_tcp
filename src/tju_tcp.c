@@ -229,7 +229,7 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
     case LISTEN:
         if (flag == SYN_FLAG_MASK)
         {
-            _info_("server: SYN received!");
+            _debug_("server: SYN received!");
             sock->state = SYN_RECV;
             char *pkt = create_packet_buf(dst_port, src_port, ack, seq + 1, DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN,
                                           SYN_FLAG_MASK | ACK_FLAG_MASK, 1, 0, NULL, 0);
@@ -239,7 +239,7 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
     case SYN_SENT:
         if (flag == SYN_FLAG_MASK | ACK_FLAG_MASK)
         {
-            _info_("client: SYN_ACK received!");
+            _debug_("client: SYN_ACK received!");
             char *pkt = create_packet_buf(dst_port, src_port, ack, seq + 1, DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN,
                                           ACK_FLAG_MASK, 1, 0, NULL, 0);
             sendToLayer3(pkt, DEFAULT_HEADER_LEN);
@@ -249,7 +249,7 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
     case SYN_RECV:
         if (flag == ACK_FLAG_MASK)
         {
-            _info_("server: ACK received!");
+            _debug_("server: ACK received!");
             tju_tcp_t *new_conn = (tju_tcp_t *)malloc(sizeof(tju_tcp_t));
             memcpy(new_conn, sock, sizeof(tju_tcp_t));
 
@@ -277,7 +277,7 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
     case ESTABLISHED:
         if (flag == FIN_FLAG_MASK)
         {
-            _info_("server FIN received! sock state -> CLOSE_WAIT");
+            _debug_("server FIN received! sock state -> CLOSE_WAIT");
             char *pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, 1,
                                           1 + 1, DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
             sendToLayer3(pkt, DEFAULT_HEADER_LEN);
@@ -324,12 +324,15 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
             _debug_("client FIN received! sock state -> TIME_WAIT");
             _debug_("client ACK sent!");
             sock->state = TIME_WAIT;
+            // 这里不清楚在等什么东西，状态转换图上有，但是还没看懂，就直接closed好了
+            sock->state = CLOSED;
         }
         break;
 
     case LAST_ACK:
         if(flag==ACK_FLAG_MASK){
             _debug_("server: closed");
+            sock->state = CLOSED;
         }
     }
 

@@ -40,4 +40,7 @@ int main(int argc, char **argv) {
 
     tju_close(my_socket);
 
+    while(my_socket->state != CLOSED);
+    _debug_("test");
+    return EXIT_SUCCESS;
 }

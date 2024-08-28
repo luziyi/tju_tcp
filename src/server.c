@@ -31,8 +31,7 @@ int main(int argc, char **argv) {
     conn_port = new_conn->established_remote_addr.port;
     _info_("server new connection remote_addr ip:%s port:%d", intToIp(conn_ip), conn_port);
 
-
-    sleep(5);
+    sleep(3);
     
     tju_send(new_conn, "hello world", 12);
     tju_send(new_conn, "hello tju", 10);
@@ -44,4 +43,7 @@ int main(int argc, char **argv) {
     tju_recv(new_conn, (void*)buf, 10);
     _msg_("recv: %s", buf);
 
+    while(new_conn->state != CLOSED);
+    
+    _debug_("test");
 }
