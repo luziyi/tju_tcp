@@ -64,7 +64,7 @@ void sendToLayer3(char *packet_buf, int packet_len)
     // 获取hostname 根据hostname 判断是客户端还是服务端
     char hostname[8];
     gethostname(hostname, 8);
-    printf("sendToLayer3 on hostname: %s\n", hostname);
+    // printf("sendToLayer3 on hostname: %s\n", hostname);
     struct sockaddr_in conn;
     conn.sin_family = AF_INET;
     conn.sin_port = htons(20218);
@@ -148,7 +148,7 @@ void startSimulation()
     // 获取hostname
     char hostname[8];
     gethostname(hostname, 8);
-    printf("startSimulation on hostname: %s\n", hostname);
+    _info_("startSimulation on hostname: %s", hostname);
 
     BACKEND_UDPSOCKET_ID = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (BACKEND_UDPSOCKET_ID < 0)
@@ -182,7 +182,7 @@ void startSimulation()
         printf("ERROR open thread");
         exit(-1);
     }
-    printf("successfully created bankend thread\n");
+    // printf("successfully created bankend thread\n");
     return;
 }
 
@@ -194,4 +194,14 @@ int cal_hash(uint32_t local_ip, uint16_t local_port, uint32_t remote_ip, uint16_
     hash ^= ((uint64_t)local_port << 16) | remote_port;
     // 将64位的哈希值缩小到适合的范围
     return (int)(hash % MAX_SOCK);
+}
+
+const char* intToIp(uint32_t ip) {
+    static char ipStr[16]; // IPv4地址的字符串表示最多15个字符，加上终止符'\0'
+    snprintf(ipStr, sizeof(ipStr), "%u.%u.%u.%u",
+             (ip >> 24) & 0xFF, // 取最高的8位
+             (ip >> 16) & 0xFF, // 取次高的8位
+             (ip >> 8) & 0xFF,  // 取次低的8位
+             ip & 0xFF);        // 取最低的8位
+    return ipStr;
 }

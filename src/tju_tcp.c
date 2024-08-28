@@ -112,7 +112,6 @@ tju_tcp_t *tju_accept(tju_tcp_t *listen_sock)
 */
 int tju_connect(tju_tcp_t *sock, tju_sock_addr target_addr)
 {
-    printf("tju_connect\n");
     tju_sock_addr local_addr;
     local_addr.ip = inet_network("10.0.0.2");
     local_addr.port = 5678; // 连接方进行connect连接的时候 内核中是随机分配一个可用的端口
@@ -131,7 +130,6 @@ int tju_connect(tju_tcp_t *sock, tju_sock_addr target_addr)
     sendToLayer3(msg, DEFAULT_HEADER_LEN);
 
     sock->state = SYN_SENT;
-    printf("client:SYN_SENT\n");
 
     while (sock->state != ESTABLISHED)
         ;
@@ -199,7 +197,7 @@ int tju_recv(tju_tcp_t *sock, void *buffer, int len)
 
 int tju_handle_packet(tju_tcp_t *sock, char *pkt)
 {
-    printf("tju_handle_packet\n");
+    // printf("tju_handle_packet\n");
     uint32_t data_len = get_plen(pkt) - DEFAULT_HEADER_LEN;
     uint8_t flag = get_flags(pkt);
     uint32_t seq = get_seq(pkt);
@@ -231,7 +229,7 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
     case LISTEN:
         if (flag == SYN_FLAG_MASK)
         {
-            printf("server: SYN received!\n");
+            _info_("server: SYN received!");
             sock->state = SYN_RECV;
             char *pkt = create_packet_buf(dst_port, src_port, ack, seq + 1, DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN,
                                           SYN_FLAG_MASK | ACK_FLAG_MASK, 1, 0, NULL, 0);
@@ -241,23 +239,23 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
     case SYN_SENT:
         if (flag == SYN_FLAG_MASK | ACK_FLAG_MASK)
         {
-            printf("client: SYN_ACK received!\n");
+            _info_("client: SYN_ACK received!");
             char *pkt = create_packet_buf(dst_port, src_port, ack, seq + 1, DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN,
                                           ACK_FLAG_MASK, 1, 0, NULL, 0);
             sendToLayer3(pkt, DEFAULT_HEADER_LEN);
+            sock->state = ESTABLISHED;
         }
         break;
     case SYN_RECV:
         if (flag == ACK_FLAG_MASK)
         {
-            printf("server: ACK received!");
+            _info_("server: ACK received!");
             tju_tcp_t *new_conn = (tju_tcp_t *)malloc(sizeof(tju_tcp_t));
             memcpy(new_conn, sock, sizeof(tju_tcp_t));
 
             tju_sock_addr local_addr, remote_addr;
 
             remote_addr.ip = inet_network("10.0.0.2");
-            printf("src port: %d", src_port);
             remote_addr.port = src_port;
 
             local_addr.ip = sock->bind_addr.ip;
@@ -275,6 +273,64 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
             accept_queue_num++;
         }
         break;
+
+    case ESTABLISHED:
+        if (flag == FIN_FLAG_MASK)
+        {
+            _info_("server FIN received! sock state -> CLOSE_WAIT");
+            char *pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, 1,
+                                          1 + 1, DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
+            sendToLayer3(pkt, DEFAULT_HEADER_LEN);
+            _debug_("server ACK sent!");
+            sock->state = CLOSE_WAIT;
+            // 应用进程关闭
+            pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, 1,
+                                          1 + 1, DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, FIN_FLAG_MASK, 1, 0, NULL, 0);
+            sendToLayer3(pkt, DEFAULT_HEADER_LEN);
+            sock->state = LAST_ACK;
+        }
+        break;
+
+    case FIN_WAIT_1:
+        if (flag == ACK_FLAG_MASK)
+        {
+            _debug_("client ACK received! sock state -> FIN_WAIT_2");
+            sock->state = FIN_WAIT_2;
+        }
+        else if (flag == FIN_FLAG_MASK)
+        {
+            // 发ack
+            _debug_("client FIN received! sock state -> CLOSING");
+            char *pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, 1,
+                                          1 + 1, DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
+            sendToLayer3(pkt, DEFAULT_HEADER_LEN);
+
+            sock->state = CLOSING;
+        }
+        else if (flag == FIN_FLAG_MASK | ACK_FLAG_MASK)
+        {
+            _debug_("client sock state -> TIME_WAIT");
+            sock->state = TIME_WAIT;
+            // 这里进入等待，时间一到直接关闭
+        }
+        break;
+
+    case FIN_WAIT_2:
+        if (flag == FIN_FLAG_MASK)
+        {
+            char *pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, 1,
+                                          1 + 1, DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
+            sendToLayer3(pkt, DEFAULT_HEADER_LEN);
+            _debug_("client FIN received! sock state -> TIME_WAIT");
+            _debug_("client ACK sent!");
+            sock->state = TIME_WAIT;
+        }
+        break;
+
+    case LAST_ACK:
+        if(flag==ACK_FLAG_MASK){
+            _debug_("server: closed");
+        }
     }
 
     return 0;
@@ -282,5 +338,16 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
 
 int tju_close(tju_tcp_t *sock)
 {
+    // 检查收发缓冲区
+
+    // 发送FIN报文
+
+    char *pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, 1, 1 + 1,
+                                  DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, FIN_FLAG_MASK, 1, 0, NULL, 0);
+    sendToLayer3(pkt, DEFAULT_HEADER_LEN);
+    sock->state = FIN_WAIT_1;
+
+    _debug_("client FIN sent! sock state -> FIN_WAIT_1");
+
     return 0;
 }

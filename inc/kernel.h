@@ -5,6 +5,7 @@
 #include "tju_packet.h"
 #include <unistd.h>
 #include "tju_tcp.h"
+#include "debug.h"
 
 #define MAX_SOCK 32
 tju_tcp_t* listen_socks[MAX_SOCK];
@@ -50,5 +51,7 @@ int BACKEND_UDPSOCKET_ID;
   不过由于本项目是TCP 协议都一样, 就没必要了)
 */
 int cal_hash(uint32_t local_ip, uint16_t local_port, uint32_t remote_ip, uint16_t remote_port);
+
+const char* intToIp(uint32_t ip);
 
 #endif
