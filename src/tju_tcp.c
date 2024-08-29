@@ -46,7 +46,7 @@ int tju_bind(tju_tcp_t *sock, tju_sock_addr bind_addr)
 */
 int tju_listen(tju_tcp_t *sock)
 {
-    accept_queue_num = 0;
+    initQueue(&accept_queue);
     sock->state = LISTEN;
     int hashval = cal_hash(sock->bind_addr.ip, sock->bind_addr.port, 0, 0);
     listen_socks[hashval] = sock;
@@ -96,11 +96,11 @@ tju_tcp_t *tju_accept(tju_tcp_t *listen_sock)
     // // 那么accept怎么拿到这个new_conn呢 在linux中 每个listen
     // // socket都维护一个已经完成连接的socket队列 每次调用accept
     // // 实际上就是取出这个队列中的一个元素 队列为空,则阻塞
-
-    while (accept_queue_num == 0)
+    while (isEmpty(&accept_queue))
         ;
-    accept_queue_num--;
-    return accept_queue[accept_queue_num];
+    tju_tcp_t *accepted_conn;
+    accepted_conn = dequeue(&accept_queue);
+    return accepted_conn;
 }
 
 /*
@@ -269,8 +269,7 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
             int hashval = cal_hash(local_addr.ip, local_addr.port, remote_addr.ip, remote_addr.port);
             established_socks[hashval] = new_conn;
 
-            accept_queue[accept_queue_num] = new_conn;
-            accept_queue_num++;
+            enqueue(&accept_queue, new_conn);
         }
         break;
 
@@ -283,9 +282,12 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
             sendToLayer3(pkt, DEFAULT_HEADER_LEN);
             _debug_("server ACK sent!");
             sock->state = CLOSE_WAIT;
+
+            // 如果服务器没有消息要发送，则关闭连接,如果发送缓冲区还有东西，则阻塞
+            while(sock->sending_buf!=NULL);
             // 应用进程关闭
-            pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, 1,
-                                          1 + 1, DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, FIN_FLAG_MASK, 1, 0, NULL, 0);
+            pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, 1, 1 + 1,
+                                    DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, FIN_FLAG_MASK, 1, 0, NULL, 0);
             sendToLayer3(pkt, DEFAULT_HEADER_LEN);
             sock->state = LAST_ACK;
         }
@@ -330,8 +332,8 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
         break;
 
     case LAST_ACK:
-        if(flag==ACK_FLAG_MASK){
-            _debug_("server: closed");
+        if (flag == ACK_FLAG_MASK)
+        {
             sock->state = CLOSED;
         }
     }

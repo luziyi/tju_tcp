@@ -43,7 +43,8 @@ int main(int argc, char **argv) {
     tju_recv(new_conn, (void*)buf, 10);
     _msg_("recv: %s", buf);
 
+
+
     while(new_conn->state != CLOSED);
-    
-    _debug_("test");
+    _debug_("server CLOSED");
 }
