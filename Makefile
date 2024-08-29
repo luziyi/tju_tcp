@@ -13,7 +13,10 @@ OBJS = $(BUILD_DIR)/tju_packet.o \
 
 default:all
 
-all: clean server client
+all: create_build_dir clean server client
+
+create_build_dir:
+	@mkdir -p $(BUILD_DIR)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c 
 	$(CC) $(FLAGS) -c -o $@ $<
