@@ -1,13 +1,4 @@
-# Ignore all files
-*
-
-# Except these directories
-!inc/
-!src/
-!test/
-
-# Except these files
-!Makefile
-!README.md
-!*.docx
-!.gitignore
+/.vscode
+/build
+client
+server
