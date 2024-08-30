@@ -1,5 +1,14 @@
-[1;34m [INFO] [2024-08-30 09:25:21] [0mstartSimulation on hostname: client 
-[1;91m [DEBUG] [2024-08-30 09:25:21] [0mclient SYN sent! 
-[1;91m [DEBUG] [2024-08-30 09:25:21] [0mtju_handle_packet
- 
-[1;91m [DEBUG] [2024-08-30 09:25:21] [0mclient: SYN_ACK received! 
+[客户端] 发送SYN 等待服务端第二次握手的SYN|ACK
+[客户端] 收到一个TCP数据包
+[客户端] 服务端发送的ACK|SYN报文检验通过
+[客户端] 发送ACK
+[客户端] 发送FIN
+[客户端] 收到一个TCP数据包
+[客户端] 服务端发送的FIN报文检验通过
+{{GET FIRST FIN SCORE}}
+[客户端] 发送ACK
+[客户端] 收到一个TCP数据包
+[客户端] 服务端发送的ACK报文检验通过
+{{GET FIRST ACK SCORE}}
+[客户端] 等待结束，连接关闭
+{{TEST SUCCESS FOR SERVER SIDE}}

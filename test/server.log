@@ -1,8 +1,13 @@
-[服务端] 收到一个TCP数据包
-[服务端] 客户端发送的第一个SYN报文检验通过
-{{GET SYN SCORE}}
-[服务端] 发送SYNACK 等待客户端第三次握手的ACK
-[服务端] 收到一个TCP数据包
-[服务端] 客户端发送的ACK报文检验通过, 成功建立连接
-{{GET ACK SCORE}}
-{{TEST SUCCESS}}
+[1;34m [INFO] [2024-08-30 13:12:59] [0mstartSimulation on hostname: server 
+[1;91m [DEBUG] [2024-08-30 13:12:59] [0mtju_handle_packet 
+[1;91m [DEBUG] [2024-08-30 13:12:59] [0mserver: SYN received! 
+[1;91m [DEBUG] [2024-08-30 13:12:59] [0mtju_handle_packet 
+[1;91m [DEBUG] [2024-08-30 13:12:59] [0mserver: ACK received! 
+[服务端] 测试双方同时断开连接的情况
+[1;91m [DEBUG] [2024-08-30 13:12:59] [0mFIN sent! sock state -> FIN_WAIT_1 
+[1;91m [DEBUG] [2024-08-30 13:13:01] [0mtju_handle_packet 
+[1;91m [DEBUG] [2024-08-30 13:13:01] [0mFIN received! sock state -> CLOSING 
+[1;91m [DEBUG] [2024-08-30 13:13:01] [0mtju_handle_packet 
+[1;91m [DEBUG] [2024-08-30 13:13:01] [0mACK received! sock state -> TIME_WAIT 
+[1;91m [DEBUG] [2024-08-30 13:13:01] [0msock state -> CLOSED 
+STATE TRANSFORM TO CLOSED

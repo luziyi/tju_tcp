@@ -286,8 +286,9 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
         if (flag == FIN_FLAG_MASK | ACK_FLAG_MASK)
         {
             _debug_("FIN received! sock state -> CLOSE_WAIT");
-            char *pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, 1,
-                                          seq+1, DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
+            char *pkt =
+                create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, ack, seq + 1,
+                                  DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
             sendToLayer3(pkt, DEFAULT_HEADER_LEN);
             _debug_("ACK sent!");
 
@@ -298,8 +299,9 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
             // 如果服务器没有消息要发送，则关闭连接,如果发送缓冲区还有东西，则阻塞
             sleep(1);
             // 应用进程关闭
-            pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, 1, seq+1,
-                                    DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, FIN_FLAG_MASK | ACK_FLAG_MASK, 1, 0, NULL, 0);
+            pkt =
+                create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, ack, seq + 1,
+                                  DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, FIN_FLAG_MASK | ACK_FLAG_MASK, 1, 0, NULL, 0);
             sendToLayer3(pkt, DEFAULT_HEADER_LEN);
             _debug_("FIN sent! sock state -> LAST_ACK");
             pthread_mutex_lock(&(sock->state_lock));
@@ -321,8 +323,9 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
         {
             // 发ack
             _debug_("FIN received! sock state -> CLOSING");
-            char *pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, 1,
-                                          1 + 1, DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
+            char *pkt =
+                create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, ack, seq + 1,
+                                  DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
             sendToLayer3(pkt, DEFAULT_HEADER_LEN);
 
             pthread_mutex_lock(&(sock->state_lock));
@@ -338,6 +341,8 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
             pthread_mutex_unlock(&(sock->state_lock));
 
             sleep(2);
+
+            sock->state = CLOSED;
         }
         break;
 
@@ -349,8 +354,9 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
             sock->state = TIME_WAIT;
             pthread_mutex_unlock(&(sock->state_lock));
 
-            char *pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, 2,
-                                          1 + 1, DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
+            char *pkt =
+                create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, ack, seq + 1,
+                                  DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
             sendToLayer3(pkt, DEFAULT_HEADER_LEN);
             _debug_("ACK sent!");
 
@@ -405,7 +411,7 @@ int tju_close(tju_tcp_t *sock)
 
     _debug_("FIN sent! sock state -> FIN_WAIT_1");
 
-    while(sock->state != CLOSED)
+    while (sock->state != CLOSED)
         ;
     _debug_("sock state -> CLOSED");
     return 0;
