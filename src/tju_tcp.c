@@ -334,9 +334,12 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
         }
         else if (flag == FIN_FLAG_MASK | ACK_FLAG_MASK)
         {
-            _debug_("sock state -> TIME_WAIT");
-
-            pthread_mutex_lock(&(sock->state_lock));
+			// 发ack
+			_debug_("client FINACK received! sock state -> TIME_WAIT");
+            char *pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, ack,
+                                          seq + 1, DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
+            sendToLayer3(pkt, DEFAULT_HEADER_LEN);
+            
             sock->state = TIME_WAIT;
             pthread_mutex_unlock(&(sock->state_lock));
 
