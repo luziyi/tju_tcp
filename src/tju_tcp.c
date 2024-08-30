@@ -150,7 +150,7 @@ int tju_send(tju_tcp_t *sock, const void *buffer, int len)
     msg = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, seq, 0,
                             DEFAULT_HEADER_LEN, plen, NO_FLAG, 1, 0, data, len);
     sendToLayer3(msg, plen);
-
+    
     return 0;
 }
 
