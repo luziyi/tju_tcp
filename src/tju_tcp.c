@@ -279,6 +279,7 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
             established_socks[hashval] = new_conn;
 
             enqueue(&accept_queue, new_conn);
+            sock->state = LISTEN;
         }
         break;
 
