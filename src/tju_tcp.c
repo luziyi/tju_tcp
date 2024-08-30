@@ -113,7 +113,7 @@ tju_tcp_t *tju_accept(tju_tcp_t *listen_sock)
 int tju_connect(tju_tcp_t *sock, tju_sock_addr target_addr)
 {
     tju_sock_addr local_addr;
-    local_addr.ip = inet_network("10.0.0.2");
+    local_addr.ip = inet_network("172.17.0.2");
     local_addr.port = 5678; // 连接方进行connect连接的时候 内核中是随机分配一个可用的端口
     sock->established_local_addr = local_addr;
     sock->established_remote_addr = target_addr;
@@ -128,7 +128,7 @@ int tju_connect(tju_tcp_t *sock, tju_sock_addr target_addr)
     char *msg = create_packet_buf(sock->established_local_addr.port, target_addr.port, 1, 0, DEFAULT_HEADER_LEN,
                                   DEFAULT_HEADER_LEN, SYN_FLAG_MASK, 1, 0, NULL, 0);
     sendToLayer3(msg, DEFAULT_HEADER_LEN);
-
+    _debug_("client SYN sent!");
     sock->state = SYN_SENT;
 
     while (sock->state != ESTABLISHED)
@@ -150,7 +150,7 @@ int tju_send(tju_tcp_t *sock, const void *buffer, int len)
     msg = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, seq, 0,
                             DEFAULT_HEADER_LEN, plen, NO_FLAG, 1, 0, data, len);
     sendToLayer3(msg, plen);
-
+    
     return 0;
 }
 
@@ -197,7 +197,7 @@ int tju_recv(tju_tcp_t *sock, void *buffer, int len)
 
 int tju_handle_packet(tju_tcp_t *sock, char *pkt)
 {
-    // printf("tju_handle_packet\n");
+    _debug_("tju_handle_packet\n");
     uint32_t data_len = get_plen(pkt) - DEFAULT_HEADER_LEN;
     uint8_t flag = get_flags(pkt);
     uint32_t seq = get_seq(pkt);
@@ -255,7 +255,7 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
 
             tju_sock_addr local_addr, remote_addr;
 
-            remote_addr.ip = inet_network("10.0.0.2");
+            remote_addr.ip = inet_network("172.17.0.2");
             remote_addr.port = src_port;
 
             local_addr.ip = sock->bind_addr.ip;

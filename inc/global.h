@@ -49,9 +49,17 @@
 #define CONGESTION_AVOIDANCE 1
 #define FAST_RECOVERY 2
 
+// 收发窗口最大满载数据包
+#define MAX_PKG 32
 // TCP 接受窗口大小
-#define TCP_RECVWN_SIZE 32 * MAX_DLEN // 比如最多放32个满载数据包
+#define TCP_RECVWN_SIZE (MAX_PKG * MAX_DLEN) // 比如最多放32个满载数据包
 
+// 发送窗口缓存的发送数据
+typedef struct
+{
+    char* msg[MAX_PKG];
+    struct timeval send_time[MAX_PKG];
+}send_buf;
 // TCP 发送窗口
 // 注释的内容如果想用就可以用 不想用就删掉 仅仅提供思路和灵感
 typedef struct
@@ -68,7 +76,9 @@ typedef struct
     int congestion_status;
     uint16_t cwnd;
     uint16_t ssthresh;
+    send_buf *resend_buf[MAX_PKG];
 } sender_window_t;
+
 
 // TCP 接受窗口
 // 注释的内容如果想用就可以用 不想用就删掉 仅仅提供思路和灵感

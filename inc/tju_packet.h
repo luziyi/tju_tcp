@@ -12,6 +12,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "global.h"
+#include "timer.h"
 
 
 #define DEFAULT_HEADER_LEN 20
