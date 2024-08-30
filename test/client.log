@@ -1,5 +1,13 @@
-[1;34m [INFO] [2024-08-30 09:25:21] [0mstartSimulation on hostname: client 
-[1;91m [DEBUG] [2024-08-30 09:25:21] [0mclient SYN sent! 
-[1;91m [DEBUG] [2024-08-30 09:25:21] [0mtju_handle_packet
+[1;34m [INFO] [2024-08-30 13:08:54] [0mstartSimulation on hostname: client 
+[1;91m [DEBUG] [2024-08-30 13:08:54] [0mclient SYN sent! 
+[1;91m [DEBUG] [2024-08-30 13:08:54] [0mtju_handle_packet
  
-[1;91m [DEBUG] [2024-08-30 09:25:21] [0mclient: SYN_ACK received! 
+[1;91m [DEBUG] [2024-08-30 13:08:54] [0mclient: SYN_ACK received! 
+[断开连接测试-客户端] 调用 tju_close
+[1;91m [DEBUG] [2024-08-30 13:08:55] [0mclient FIN sent! sock state -> FIN_WAIT_1 
+[断开连接测试-客户端] 等待10s确保连接完全断开
+[1;91m [DEBUG] [2024-08-30 13:08:55] [0mtju_handle_packet
+ 
+[1;91m [DEBUG] [2024-08-30 13:08:55] [0mclient FINACK received! sock state -> TIME_WAIT 
+[1;91m [DEBUG] [2024-08-30 13:08:55] [0mtju_handle_packet
+ 

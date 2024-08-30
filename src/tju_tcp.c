@@ -277,8 +277,8 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
         if (flag == FIN_FLAG_MASK)
         {
             _debug_("server FIN received! sock state -> CLOSE_WAIT");
-            char *pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, 1,
-                                          1 + 1, DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
+            char *pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, ack,
+                                          seq + 1, DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
             sendToLayer3(pkt, DEFAULT_HEADER_LEN);
             _debug_("server ACK sent!");
             sock->state = CLOSE_WAIT;
@@ -286,7 +286,7 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
             // 如果服务器没有消息要发送，则关闭连接,如果发送缓冲区还有东西，则阻塞
             while(sock->sending_buf!=NULL);
             // 应用进程关闭
-            pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, 1, 1 + 1,
+            pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, ack, seq + 1,
                                     DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, FIN_FLAG_MASK, 1, 0, NULL, 0);
             sendToLayer3(pkt, DEFAULT_HEADER_LEN);
             sock->state = LAST_ACK;
@@ -303,25 +303,31 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
         {
             // 发ack
             _debug_("client FIN received! sock state -> CLOSING");
-            char *pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, 1,
-                                          1 + 1, DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
+            char *pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, ack,
+                                          seq + 1, DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
             sendToLayer3(pkt, DEFAULT_HEADER_LEN);
 
             sock->state = CLOSING;
         }
         else if (flag == FIN_FLAG_MASK | ACK_FLAG_MASK)
         {
-            _debug_("client sock state -> TIME_WAIT");
+			// 发ack
+			_debug_("client FINACK received! sock state -> TIME_WAIT");
+            char *pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, ack,
+                                          seq + 1, DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
+            sendToLayer3(pkt, DEFAULT_HEADER_LEN);
+            
             sock->state = TIME_WAIT;
-            // 这里进入等待，时间一到直接关闭
+           // 这里不清楚在等什么东西，状态转换图上有，但是还没看懂，就直接closed好了
+            sock->state = CLOSED;
         }
         break;
 
     case FIN_WAIT_2:
-        if (flag == FIN_FLAG_MASK)
+        if (flag & FIN_FLAG_MASK)
         {
-            char *pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, 1,
-                                          1 + 1, DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
+            char *pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, ack,
+                                          seq + 1, DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
             sendToLayer3(pkt, DEFAULT_HEADER_LEN);
             _debug_("client FIN received! sock state -> TIME_WAIT");
             _debug_("client ACK sent!");
