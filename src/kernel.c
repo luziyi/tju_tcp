@@ -15,15 +15,12 @@ void onTCPPocket(char *pkt)
     char hostname[8];
     gethostname(hostname, 8);
     uint32_t remote_ip, local_ip;
-    if (strcmp(hostname, "server") == 0)
-    { // 自己是服务端 远端就是客户端
-        local_ip = inet_network("172.17.0.3");
-        remote_ip = inet_network("172.17.0.2");
-    }
-    else if (strcmp(hostname, "client") == 0)
-    { // 自己是客户端 远端就是服务端
-        local_ip = inet_network("172.17.0.2");
-        remote_ip = inet_network("172.17.0.3");
+    if(strcmp(hostname,"server")==0){ // 自己是服务端 远端就是客户端
+        local_ip = inet_network("10.0.0.1");
+        remote_ip = inet_network("10.0.0.2");
+    }else if(strcmp(hostname,"client")==0){ // 自己是客户端 远端就是服务端 
+        local_ip = inet_network("10.0.0.2");
+        remote_ip = inet_network("10.0.0.1");
     }
 
     int hashval;
@@ -70,18 +67,13 @@ void sendToLayer3(char *packet_buf, int packet_len)
     conn.sin_family = AF_INET;
     conn.sin_port = htons(20218);
     int rst;
-    if (strcmp(hostname, "server") == 0)
-    {
-        conn.sin_addr.s_addr = inet_addr("172.17.0.2");
-        rst = sendto(BACKEND_UDPSOCKET_ID, packet_buf, packet_len, 0, (struct sockaddr *)&conn, sizeof(conn));
-    }
-    else if (strcmp(hostname, "client") == 0)
-    {
-        conn.sin_addr.s_addr = inet_addr("172.17.0.3");
-        rst = sendto(BACKEND_UDPSOCKET_ID, packet_buf, packet_len, 0, (struct sockaddr *)&conn, sizeof(conn));
-    }
-    else
-    {
+    if(strcmp(hostname,"server")==0){
+        conn.sin_addr.s_addr = inet_addr("10.0.0.2");
+        rst = sendto(BACKEND_UDPSOCKET_ID, packet_buf, packet_len, 0, (struct sockaddr*)&conn, sizeof(conn));
+    }else if(strcmp(hostname,"client")==0){       
+        conn.sin_addr.s_addr = inet_addr("10.0.0.1");
+        rst = sendto(BACKEND_UDPSOCKET_ID, packet_buf, packet_len, 0, (struct sockaddr*)&conn, sizeof(conn));
+    }else{
         printf("请不要改动hostname...\n");
         exit(-1);
     }
