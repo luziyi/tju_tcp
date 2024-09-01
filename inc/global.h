@@ -15,6 +15,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+// ip修改在这里
+#define SERVER_IP "172.17.0.6"
+#define CLIENT_IP "172.17.0.5"
+
 // 单位是byte
 #define SIZE32 4
 #define SIZE16 2
