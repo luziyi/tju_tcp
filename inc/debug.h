@@ -1,8 +1,8 @@
 #ifndef DEBUG_H
 #define DEBUG_H
 
-#define DEBUG_FLAG 0
-#define INFO_FLAG 0
+#define DEBUG_FLAG 1
+#define INFO_FLAG 1
 #define MSG_FLAG 1
 
 #include <stdio.h>
