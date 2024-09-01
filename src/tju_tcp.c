@@ -113,7 +113,7 @@ tju_tcp_t *tju_accept(tju_tcp_t *listen_sock)
 int tju_connect(tju_tcp_t *sock, tju_sock_addr target_addr)
 {
     tju_sock_addr local_addr;
-    local_addr.ip = inet_network("172.17.0.2");
+    local_addr.ip = inet_network("172.17.0.5");
     local_addr.port = 5678; // 连接方进行connect连接的时候 内核中是随机分配一个可用的端口
     sock->established_local_addr = local_addr;
     sock->established_remote_addr = target_addr;
@@ -262,7 +262,7 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
 
             tju_sock_addr local_addr, remote_addr;
 
-            remote_addr.ip = inet_network("172.17.0.2");
+            remote_addr.ip = inet_network("172.17.0.5");
             remote_addr.port = src_port;
 
             local_addr.ip = sock->bind_addr.ip;
@@ -401,10 +401,6 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
 
 int tju_close(tju_tcp_t *sock)
 {
-    // 检查收发缓冲区
-
-    // 发送FIN报文
-
     char *pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, 1, 1 + 1,
                                   DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, FIN_FLAG_MASK | ACK_FLAG_MASK, 1, 0, NULL, 0);
     sendToLayer3(pkt, DEFAULT_HEADER_LEN);
