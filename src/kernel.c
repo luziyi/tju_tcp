@@ -122,6 +122,60 @@ void *receive_thread(void *arg)
 }
 
 /*
+ 仿真发送数据线程
+*/
+void *send_thread(void *arg)
+{
+    // 检查 sock->sending_buf
+    // 如果不为空 则调用sendToLayer3发送数据
+    // 发送完毕后 释放sock->sending_buf
+    while (1)
+    {
+        int index;
+        for (index = 0; index < MAX_SOCK; index++)
+        {
+            if (established_socks[index] != NULL)
+            {
+                tju_tcp_t *sock = established_socks[index];
+                while (pthread_mutex_lock(&(sock->send_lock)) != 0)
+                    ; // 加锁
+
+                if(sock->sending_len > 0)
+                {
+                    int len = sock->sending_len <= MAX_LEN - DEFAULT_HEADER_LEN ? sock->sending_len : MAX_LEN - DEFAULT_HEADER_LEN;
+
+                    // 截断 len
+                    char *pkt = malloc(len);
+                    memcpy(pkt, sock->sending_buf, len);
+
+                    // 组装 packet
+                    char *msg = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, 1, 1 + 1,
+                                            DEFAULT_HEADER_LEN, len + DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, pkt, len);
+                    
+                    // 发送
+                    sendToLayer3(msg, DEFAULT_HEADER_LEN + len);
+
+                    // 释放
+                    free(pkt);
+                    free(msg);
+
+                    // 释放发送缓存区
+                    char* new_buf = malloc(sock->sending_len - len);
+                    memcpy(new_buf, sock->sending_buf + len, sock->sending_len - len);
+                    free(sock->sending_buf);
+                    sock->sending_buf = new_buf;
+                    sock->sending_len -= len;
+
+                    _debug_("send a packet: len = %d", len);
+                }
+
+                pthread_mutex_unlock(&(sock->send_lock)); // 解锁
+            }
+        }
+    }
+}
+
+/*
  开启仿真, 运行起后台线程
 
  不论是server还是client
@@ -168,6 +222,7 @@ void startSimulation()
         exit(-1);
     }
 
+    // 创建一个线程 不断调用receive_thread
     pthread_t thread_id = 1001;
     int rst = pthread_create(&thread_id, NULL, receive_thread, (void *)(&BACKEND_UDPSOCKET_ID));
     if (rst < 0)
@@ -175,7 +230,17 @@ void startSimulation()
         printf("ERROR open thread");
         exit(-1);
     }
-    // printf("successfully created bankend thread\n");
+
+    // 创建一个线程 不断调用send_thread
+    pthread_t thread_id2 = 1002;
+    rst = pthread_create(&thread_id2, NULL, send_thread, (void *)(&BACKEND_UDPSOCKET_ID));
+    if (rst < 0)
+    {
+        printf("ERROR open thread");
+        exit(-1);
+    }
+
+    printf("successfully created bankend thread\n");
     return;
 }
 

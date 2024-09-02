@@ -161,17 +161,21 @@ int tju_connect(tju_tcp_t *sock, tju_sock_addr target_addr)
 
 int tju_send(tju_tcp_t *sock, const void *buffer, int len)
 {
-    // 这里当然不能直接简单地调用sendToLayer3
-    char *data = malloc(len);
-    memcpy(data, buffer, len);
+    while (pthread_mutex_lock(&(sock->send_lock)) != 0)
+        ; // 加锁
 
-    char *msg;
-    uint32_t seq = 464;
-    uint16_t plen = DEFAULT_HEADER_LEN + len;
+    if (sock->sending_buf == NULL)
+    {
+        sock->sending_buf = malloc(len);
+    }
+    else
+    {
+        sock->sending_buf = realloc(sock->sending_buf, sock->sending_len + len);
+    }
+    memcpy(sock->sending_buf + sock->sending_len, buffer, len);
+    sock->sending_len += len;
 
-    msg = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, seq, 0,
-                            DEFAULT_HEADER_LEN, plen, NO_FLAG, 1, 0, data, len);
-    sendToLayer3(msg, plen);
+    pthread_mutex_unlock(&(sock->send_lock)); // 解锁
 
     return 0;
 }
@@ -229,6 +233,8 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
     uint16_t src_port = get_src(pkt);
     uint16_t dst_port = get_dst(pkt);
     tju_tcp_t *new_conn = NULL;
+
+    _debug_("data_len = %d", data_len);
 
     // 把收到的数据放到接受缓冲区
     while (pthread_mutex_lock(&(sock->recv_lock)) != 0)
@@ -331,6 +337,16 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
             pthread_mutex_lock(&(sock->state_lock));
             sock->state = LAST_ACK;
             pthread_mutex_unlock(&(sock->state_lock));
+        }
+        else
+        {
+            if (sock->received_buf == NULL)
+            {
+                // 发ack
+                char *pkt =
+                    create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, ack, seq + 1,
+                                      DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
+            }
         }
         break;
 
