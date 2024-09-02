@@ -7,19 +7,30 @@
 
 #include <stdio.h>
 #include <time.h>
+#include <sys/time.h>
+
+static inline void get_formatted_time(char *buffer, size_t buffer_size, int include_microseconds) {
+    struct timeval tv;
+    struct tm *timeinfo;
+
+    gettimeofday(&tv, NULL);
+    timeinfo = localtime(&tv.tv_sec);
+    
+    if (include_microseconds) {
+        strftime(buffer, buffer_size, "%Y-%m-%d %H:%M:%S", timeinfo);
+        snprintf(buffer + 19, buffer_size - 19, ".%06ld", tv.tv_usec);
+    } else {
+        strftime(buffer, buffer_size, "%Y-%m-%d %H:%M:%S", timeinfo);
+    }
+}
 
 #define _info_(format, ...)                                                                                            \
     do                                                                                                                 \
     {                                                                                                                  \
         if (INFO_FLAG)                                                                                                 \
         {                                                                                                              \
-            time_t rawtime;                                                                                            \
-            struct tm *timeinfo;                                                                                       \
-            char buffer[20];                                                                                           \
-            time(&rawtime);                                                                                            \
-            rawtime += 8 * 3600;                                                                                       \
-            timeinfo = localtime(&rawtime);                                                                            \
-            strftime(buffer, 20, "%Y-%m-%d %H:%M:%S", timeinfo);                                                       \
+            char buffer[40];                                                                                           \
+            get_formatted_time(buffer, sizeof(buffer), 1);                                                             \
             printf("\33[1;34m [INFO] [%s] \33[0m" format " \n", buffer, ##__VA_ARGS__);                                \
         }                                                                                                              \
     } while (0)
@@ -29,13 +40,8 @@
     {                                                                                                                  \
         if (MSG_FLAG)                                                                                                  \
         {                                                                                                              \
-            time_t rawtime;                                                                                            \
-            struct tm *timeinfo;                                                                                       \
-            char buffer[20];                                                                                           \
-            time(&rawtime);                                                                                            \
-            rawtime += 8 * 3600;                                                                                       \
-            timeinfo = localtime(&rawtime);                                                                            \
-            strftime(buffer, 20, "%Y-%m-%d %H:%M:%S", timeinfo);                                                       \
+            char buffer[40];  /* Increased buffer size to 40 */                                                        \
+            get_formatted_time(buffer, sizeof(buffer), 1);                                                             \
             printf("\33[1;32m [MSG] [%s] \33[0m" format " \n", buffer, ##__VA_ARGS__);                                 \
         }                                                                                                              \
     } while (0)
@@ -45,16 +51,12 @@
     {                                                                                                                  \
         if (DEBUG_FLAG)                                                                                                \
         {                                                                                                              \
-            time_t rawtime;                                                                                            \
-            struct tm *timeinfo;                                                                                       \
-            char buffer[20];                                                                                           \
-            time(&rawtime);                                                                                            \
-            rawtime += 8 * 3600;                                                                                       \
-            timeinfo = localtime(&rawtime);                                                                            \
-            strftime(buffer, 20, "%Y-%m-%d %H:%M:%S", timeinfo);                                                       \
+            char buffer[40];                                                                                           \
+            get_formatted_time(buffer, sizeof(buffer), 1);                                                             \
             printf("\33[1;91m [DEBUG] [%s] \33[0m" format " \n", buffer, ##__VA_ARGS__);                               \
         }                                                                                                              \
     } while (0)
+
 
 #define STATE_TO_STRING(state)                                                                                         \
     ((state) == CLOSED        ? "CLOSED"                                                                               \
