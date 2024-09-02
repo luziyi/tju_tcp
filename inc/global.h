@@ -2,6 +2,7 @@
 #define _GLOBAL_H_
 
 #include "global.h"
+#include "trace.h"
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <pthread.h>
@@ -130,6 +131,8 @@ typedef struct
     pthread_cond_t wait_cond; // 可以被用来唤醒recv函数调用时等待的线程
 
     window_t window; // 发送和接受窗口
+
+    FILE *file; // trace文件
 
 } tju_tcp_t;
 

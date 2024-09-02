@@ -9,6 +9,28 @@ tju_tcp_t *tju_socket()
 {
     tju_tcp_t *sock = (tju_tcp_t *)malloc(sizeof(tju_tcp_t));
     sock->state = CLOSED;
+    char hostname[8];
+    gethostname(hostname, 8);
+    if (strcmp(hostname, "server") == 0)
+    {
+        sock->file = fopen("server.trace.log", "w");
+        if (sock->file == NULL)
+        {
+            perror("Failed to open file");
+        }
+    }
+    else if (strcmp(hostname, "client") == 0)
+    {
+        sock->file = fopen("client.trace.log", "w");
+        if (sock->file == NULL)
+        {
+            perror("Failed to open file");
+        }
+    }
+    log_event(sock->file, "SEND", "seq:%d ack:%d flag:%d length:%d", 33, 66, 0, 111);
+    log_event(sock->file, "SEND", "seq:%d ack:%d flag:%d length:%d", 33, 66, 0, 111);
+    log_event(sock->file, "SEND", "seq:%d ack:%d flag:%d length:%d", 33, 66, 0, 111);
+
     pthread_mutex_init(&(sock->state_lock), NULL);
     pthread_mutex_init(&(sock->send_lock), NULL);
     sock->sending_buf = NULL;
@@ -150,7 +172,7 @@ int tju_send(tju_tcp_t *sock, const void *buffer, int len)
     msg = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, seq, 0,
                             DEFAULT_HEADER_LEN, plen, NO_FLAG, 1, 0, data, len);
     sendToLayer3(msg, plen);
-    
+
     return 0;
 }
 
@@ -198,6 +220,7 @@ int tju_recv(tju_tcp_t *sock, void *buffer, int len)
 int tju_handle_packet(tju_tcp_t *sock, char *pkt)
 {
     _debug_("tju_handle_packet");
+
     uint32_t data_len = get_plen(pkt) - DEFAULT_HEADER_LEN;
     uint8_t flag = get_flags(pkt);
     uint32_t seq = get_seq(pkt);
@@ -335,12 +358,13 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
         }
         else if (flag == FIN_FLAG_MASK | ACK_FLAG_MASK)
         {
-			// 发ack
-			_debug_("client FINACK received! sock state -> TIME_WAIT");
-            char *pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, ack,
-                                          seq + 1, DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
+            // 发ack
+            _debug_("client FINACK received! sock state -> TIME_WAIT");
+            char *pkt =
+                create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, ack, seq + 1,
+                                  DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
             sendToLayer3(pkt, DEFAULT_HEADER_LEN);
-            
+
             sock->state = TIME_WAIT;
             pthread_mutex_unlock(&(sock->state_lock));
 
