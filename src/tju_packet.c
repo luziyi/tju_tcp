@@ -7,7 +7,7 @@ uint32_t isn_gen() {
     uint32_t random_number = (uint32_t)rand();
     // 将时间戳和随机数结合生成ISN
     uint32_t isn = time_stamp ^ random_number;
-    return isn;
+    return isn%1024;
 }
 
 /*

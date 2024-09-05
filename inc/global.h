@@ -17,7 +17,7 @@
 #include <unistd.h>
 
 // ip修改在这里
-#define SERVER_IP "172.17.0.1"
+#define SERVER_IP "172.17.0.3"
 #define CLIENT_IP "172.17.0.2"
 
 // 单位是byte

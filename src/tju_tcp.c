@@ -27,9 +27,23 @@ tju_tcp_t *tju_socket()
             perror("Failed to open file");
         }
     }
-    log_event(sock->file, "SEND", "seq:%d ack:%d flag:%d length:%d", 33, 66, 0, 111);
-    log_event(sock->file, "SEND", "seq:%d ack:%d flag:%d length:%d", 33, 66, 0, 111);
-    log_event(sock->file, "SEND", "seq:%d ack:%d flag:%d length:%d", 33, 66, 0, 111);
+
+    //初始化发送窗口
+    sock->window.wnd_send = (sender_window_t *)malloc(sizeof(sender_window_t));
+    // sock->window.wnd_send->window_size = 0;
+    sock->window.wnd_send->base = isn_gen();
+    sock->window.wnd_send->nextseq = sock->window.wnd_send->base;
+    // sock->window.wnd_send->estmated_rtt = 0;
+    // sock->window.wnd_send->ack_cnt = 0;
+    // pthread_mutex_init(&(sock->window.wnd_send->ack_cnt_lock), NULL);
+    // sock->window.wnd_send->send_time.tv_sec = 0;
+    // sock->window.wnd_send->send_time.tv_usec = 0;
+    // sock->window.wnd_send->timeout.tv_sec = 0;
+    // sock->window.wnd_send->timeout.tv_usec = 0;
+    // sock->window.wnd_send->rwnd = 0;
+    // sock->window.wnd_send->congestion_status = SLOW_START;
+    // sock->window.wnd_send->cwnd = 1;
+    // sock->window.wnd_send->ssthresh = 16;
 
     pthread_mutex_init(&(sock->state_lock), NULL);
     pthread_mutex_init(&(sock->send_lock), NULL);
@@ -83,41 +97,6 @@ int tju_listen(tju_tcp_t *sock)
 */
 tju_tcp_t *tju_accept(tju_tcp_t *listen_sock)
 {
-    // while (listen_sock->state != SYN_RECV)
-    //     ; // 阻塞 直到有SYN_RECV的socket
-
-    // tju_tcp_t *new_conn = (tju_tcp_t *)malloc(sizeof(tju_tcp_t));
-    // memcpy(new_conn, listen_sock, sizeof(tju_tcp_t));
-
-    // tju_sock_addr local_addr, remote_addr;
-
-    // // 创建SYN_ACK报文
-    // /*
-    //  这里涉及到TCP连接的建立
-    //  正常来说应该是收到客户端发来的SYN报文
-    //  从中拿到对端的IP和PORT
-    //  换句话说 下面的处理流程其实不应该放在这里 应该在tju_handle_packet中
-    // */
-    // remote_addr.ip = inet_network("10.0.0.2"); // 具体的IP地址
-    // remote_addr.port = 5678;                   // 端口
-
-    // local_addr.ip = listen_sock->bind_addr.ip;     // 具体的IP地址
-    // local_addr.port = listen_sock->bind_addr.port; // 端口
-
-    // new_conn->established_local_addr = local_addr;
-    // new_conn->established_remote_addr = remote_addr;
-
-    // // 这里应该是经过三次握手后才能修改状态为ESTABLISHED
-    // new_conn->state = ESTABLISHED;
-
-    // // 将新的conn放到内核建立连接的socket哈希表中
-    // int hashval = cal_hash(local_addr.ip, local_addr.port, remote_addr.ip, remote_addr.port);
-    // established_socks[hashval] = new_conn;
-
-    // // 如果new_conn的创建过程放到了tju_handle_packet中
-    // // 那么accept怎么拿到这个new_conn呢 在linux中 每个listen
-    // // socket都维护一个已经完成连接的socket队列 每次调用accept
-    // // 实际上就是取出这个队列中的一个元素 队列为空,则阻塞
     while (isEmpty(&accept_queue))
         ;
     tju_tcp_t *accepted_conn;
@@ -146,10 +125,13 @@ int tju_connect(tju_tcp_t *sock, tju_sock_addr target_addr)
     // 循环跳出的条件是socket的状态变为ESTABLISHED 表面看上去就是 正在连接中
     // 阻塞 而状态的改变在别的地方进行 在我们这就是tju_handle_packet
 
-    // 调用isn生成初始化isn
-    char *msg = create_packet_buf(sock->established_local_addr.port, target_addr.port, 1, 0, DEFAULT_HEADER_LEN,
-                                  DEFAULT_HEADER_LEN, SYN_FLAG_MASK, 1, 0, NULL, 0);
+    char *msg = create_packet_buf(sock->established_local_addr.port, target_addr.port, sock->window.wnd_send->nextseq,
+                                  0, DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, SYN_FLAG_MASK, 1, 0, NULL, 0);
+    sock->window.wnd_send->nextseq += 1;
+    log_event(sock->file, "SEND", "seq:%d ack:%d flag:%d length:%d", get_seq(msg), get_ack(msg), get_flags(msg),
+              get_plen(msg) - DEFAULT_HEADER_LEN);
     sendToLayer3(msg, DEFAULT_HEADER_LEN);
+
     _debug_("client SYN sent!");
     sock->state = SYN_SENT;
 
@@ -234,6 +216,8 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
     uint16_t dst_port = get_dst(pkt);
     tju_tcp_t *new_conn = NULL;
 
+    log_event(sock->file, "RECV", "seq:%d ack:%d flag:%d length:%d", seq, ack, flag, data_len);
+
     _debug_("data_len = %d", data_len);
 
     // 把收到的数据放到接受缓冲区
@@ -253,6 +237,11 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
 
     pthread_mutex_unlock(&(sock->recv_lock)); // 解锁
 
+    if (flag == ACK_FLAG_MASK)
+    {
+        sock->window.wnd_send->base = ack;
+    }
+
     switch (sock->state)
     {
     case LISTEN:
@@ -264,18 +253,25 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
             sock->state = SYN_RECV;
             pthread_mutex_unlock(&(sock->state_lock));
 
-            char *pkt = create_packet_buf(dst_port, src_port, ack, seq + 1, DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN,
-                                          SYN_FLAG_MASK | ACK_FLAG_MASK, 1, 0, NULL, 0);
+            char *pkt =
+                create_packet_buf(dst_port, src_port, sock->window.wnd_send->nextseq, seq + 1, DEFAULT_HEADER_LEN,
+                                  DEFAULT_HEADER_LEN, SYN_FLAG_MASK | ACK_FLAG_MASK, 1, 0, NULL, 0);
+            sock->window.wnd_send->nextseq += 1;
             sendToLayer3(pkt, DEFAULT_HEADER_LEN);
+            log_event(sock->file, "SEND", "seq:%d ack:%d flag:%d length:%d", get_seq(pkt), get_ack(pkt), get_flags(pkt),
+                      get_plen(pkt) - DEFAULT_HEADER_LEN);
         }
         break;
     case SYN_SENT:
         if (flag == SYN_FLAG_MASK | ACK_FLAG_MASK)
         {
             _debug_("client: SYN_ACK received!");
-            char *pkt = create_packet_buf(dst_port, src_port, ack, seq + 1, DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN,
-                                          ACK_FLAG_MASK, 1, 0, NULL, 0);
+            char *pkt = create_packet_buf(dst_port, src_port, sock->window.wnd_send->nextseq, seq + 1,
+                                          DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
             sendToLayer3(pkt, DEFAULT_HEADER_LEN);
+            sock->window.wnd_send->nextseq += 1;
+            log_event(sock->file, "SEND", "seq:%d ack:%d flag:%d length:%d", get_seq(pkt), get_ack(pkt), get_flags(pkt),
+                      get_plen(pkt) - DEFAULT_HEADER_LEN);
 
             pthread_mutex_lock(&(sock->state_lock));
             sock->state = ESTABLISHED;
@@ -340,12 +336,20 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
         }
         else
         {
+            if (flag == ACK_FLAG_MASK)
+            {
+                sock->window.wnd_send->base = ack;
+            }
             if (sock->received_buf == NULL)
             {
                 // 发ack
-                char *pkt =
-                    create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, ack, seq + 1,
-                                      DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
+                char *pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port,
+                                              sock->window.wnd_send->nextseq, seq + 1, DEFAULT_HEADER_LEN,
+                                              DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
+                sendToLayer3(pkt, DEFAULT_HEADER_LEN);
+                sock->window.wnd_send->nextseq += 1;
+                log_event(sock->file, "SEND", "seq:%d ack:%d flag:%d length:%d", get_seq(pkt), get_ack(pkt),
+                          get_flags(pkt), get_plen(pkt) - DEFAULT_HEADER_LEN);
             }
         }
         break;

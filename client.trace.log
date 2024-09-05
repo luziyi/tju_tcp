@@ -1,3 +1,13 @@
-[1725264943178774] [SEND] seq:33 ack:66 flag:0 length:111
-[1725264943178832] [SEND] seq:33 ack:66 flag:0 length:111
-[1725264943178861] [SEND] seq:33 ack:66 flag:0 length:111
+[1725526632120020] [SEND] seq:783 ack:0 flag:8 length:0
+[1725526632121595] [RECV] seq:768 ack:784 flag:12 length:0
+[1725526632121980] [SEND] seq:784 ack:769 flag:4 length:0
+[1725526635183172] [RECV] seq:769 ack:2 flag:4 length:12
+[1725526635183684] [SEND] seq:785 ack:2 flag:4 length:12
+[1725526635184096] [SEND] seq:797 ack:2 flag:4 length:10
+[1725526636194296] [RECV] seq:781 ack:2 flag:4 length:10
+[1725526636194555] [RECV] seq:770 ack:3 flag:4 length:0
+[1725526636217914] [RECV] seq:770 ack:3 flag:6 length:0
+[1725526638218598] [RECV] seq:791 ack:2 flag:4 length:12
+[1725526638218728] [SEND] seq:807 ack:2 flag:4 length:12
+[1725526638219168] [RECV] seq:803 ack:2 flag:4 length:10
+[1725526638219813] [SEND] seq:819 ack:2 flag:4 length:10

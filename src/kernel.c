@@ -15,10 +15,13 @@ void onTCPPocket(char *pkt)
     char hostname[8];
     gethostname(hostname, 8);
     uint32_t remote_ip, local_ip;
-    if(strcmp(hostname,"server")==0){ // 自己是服务端 远端就是客户端
+    if (strcmp(hostname, "server") == 0)
+    { // 自己是服务端 远端就是客户端
         local_ip = inet_network(SERVER_IP);
         remote_ip = inet_network(CLIENT_IP);
-    }else if(strcmp(hostname,"client")==0){ // 自己是客户端 远端就是服务端 
+    }
+    else if (strcmp(hostname, "client") == 0)
+    { // 自己是客户端 远端就是服务端
         local_ip = inet_network(CLIENT_IP);
         remote_ip = inet_network(SERVER_IP);
     }
@@ -67,13 +70,18 @@ void sendToLayer3(char *packet_buf, int packet_len)
     conn.sin_family = AF_INET;
     conn.sin_port = htons(20218);
     int rst;
-    if(strcmp(hostname,"server")==0){
+    if (strcmp(hostname, "server") == 0)
+    {
         conn.sin_addr.s_addr = inet_addr(CLIENT_IP);
-        rst = sendto(BACKEND_UDPSOCKET_ID, packet_buf, packet_len, 0, (struct sockaddr*)&conn, sizeof(conn));
-    }else if(strcmp(hostname,"client")==0){       
+        rst = sendto(BACKEND_UDPSOCKET_ID, packet_buf, packet_len, 0, (struct sockaddr *)&conn, sizeof(conn));
+    }
+    else if (strcmp(hostname, "client") == 0)
+    {
         conn.sin_addr.s_addr = inet_addr(SERVER_IP);
-        rst = sendto(BACKEND_UDPSOCKET_ID, packet_buf, packet_len, 0, (struct sockaddr*)&conn, sizeof(conn));
-    }else{
+        rst = sendto(BACKEND_UDPSOCKET_ID, packet_buf, packet_len, 0, (struct sockaddr *)&conn, sizeof(conn));
+    }
+    else
+    {
         printf("请不要改动hostname...\n");
         exit(-1);
     }
@@ -140,27 +148,32 @@ void *send_thread(void *arg)
                 while (pthread_mutex_lock(&(sock->send_lock)) != 0)
                     ; // 加锁
 
-                if(sock->sending_len > 0)
+                if (sock->sending_len > 0)
                 {
-                    int len = sock->sending_len <= MAX_LEN - DEFAULT_HEADER_LEN ? sock->sending_len : MAX_LEN - DEFAULT_HEADER_LEN;
+                    int len = sock->sending_len <= MAX_LEN - DEFAULT_HEADER_LEN ? sock->sending_len
+                                                                                : MAX_LEN - DEFAULT_HEADER_LEN;
 
                     // 截断 len
                     char *pkt = malloc(len);
                     memcpy(pkt, sock->sending_buf, len);
 
                     // 组装 packet
-                    char *msg = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port, 1, 1 + 1,
-                                            DEFAULT_HEADER_LEN, len + DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, pkt, len);
-                    
+                    char *msg = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port,
+                                                  sock->window.wnd_send->nextseq, 1 + 1, DEFAULT_HEADER_LEN,
+                                                  len + DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, pkt, len);
+
                     // 发送
                     sendToLayer3(msg, DEFAULT_HEADER_LEN + len);
+                    log_event(sock->file, "SEND", "seq:%d ack:%d flag:%d length:%d", get_seq(msg), get_ack(msg),
+                              get_flags(msg), get_plen(msg) - DEFAULT_HEADER_LEN);
+                    sock->window.wnd_send->nextseq += len;
 
                     // 释放
                     free(pkt);
                     free(msg);
 
                     // 释放发送缓存区
-                    char* new_buf = malloc(sock->sending_len - len);
+                    char *new_buf = malloc(sock->sending_len - len);
                     memcpy(new_buf, sock->sending_buf + len, sock->sending_len - len);
                     free(sock->sending_buf);
                     sock->sending_buf = new_buf;
