@@ -336,3 +336,11 @@ tju_tcp_t *peek(queue *q)
     }
     return q->data[q->front];
 }
+
+void send_pkt(tju_tcp_t *sock, char *pkt, int len)
+{
+    sendToLayer3(pkt, len);
+    log_event(sock->file, "SEND", "seq:%d ack:%d flag:%d length:%d", get_seq(pkt), get_ack(pkt), get_flags(pkt),
+              get_plen(pkt) - DEFAULT_HEADER_LEN);
+    sock->window.wnd_send->nextseq += len == DEFAULT_HEADER_LEN ? 1 : get_plen(pkt) - DEFAULT_HEADER_LEN;
+}

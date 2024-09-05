@@ -77,13 +77,11 @@ typedef struct
     uint16_t ssthresh;
 } sender_window_t;
 
-
 // TCP 接受窗口
 // 注释的内容如果想用就可以用 不想用就删掉 仅仅提供思路和灵感
 typedef struct
 {
     char received[TCP_RECVWN_SIZE];
-
     // received_packet_t *head;
     char buf[TCP_RECVWN_SIZE];
     uint8_t marked[TCP_RECVWN_SIZE];
@@ -106,7 +104,7 @@ typedef struct
 // TJU_TCP 结构体 保存TJU_TCP用到的各种数据
 typedef struct
 {
-    int state; // TCP的状态
+    int state;                  // TCP的状态
     pthread_mutex_t state_lock; // 状态锁
 
     tju_sock_addr bind_addr;               // 存放bind和listen时该socket绑定的IP和端口

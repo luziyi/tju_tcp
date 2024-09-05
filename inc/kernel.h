@@ -76,4 +76,6 @@ tju_tcp_t *dequeue(queue *q);
 // 获取队首元素但不出队
 tju_tcp_t *peek(queue *q);
 
+void send_pkt(tju_tcp_t *sock, char *pkt, int len);
+
 #endif
