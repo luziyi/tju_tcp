@@ -1,13 +1,12 @@
 #include "tju_packet.h"
 
-uint32_t isn_gen() {
-    // 获取当前时间戳
-    uint32_t time_stamp = (uint32_t)time(NULL);
-    // 获取一个随机数
-    uint32_t random_number = (uint32_t)rand();
-    // 将时间戳和随机数结合生成ISN
-    uint32_t isn = time_stamp ^ random_number;
-    return isn%1024;
+uint32_t isn_gen()
+{
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    srand(tv.tv_usec); // Use microseconds to ensure different seeds
+    uint32_t isn = (uint32_t)rand();
+    return isn % 4096;
 }
 
 /*
@@ -15,10 +14,9 @@ uint32_t isn_gen() {
  构造tju_packet_t
  返回其指针
  */
-tju_packet_t *create_packet(uint16_t src, uint16_t dst, uint32_t seq,
-                            uint32_t ack, uint16_t hlen, uint16_t plen,
-                            uint8_t flags, uint16_t adv_window, uint8_t ext,
-                            char *data, int len) {
+tju_packet_t *create_packet(uint16_t src, uint16_t dst, uint32_t seq, uint32_t ack, uint16_t hlen, uint16_t plen,
+                            uint8_t flags, uint16_t adv_window, uint8_t ext, char *data, int len)
+{
     tju_packet_t *new = malloc(sizeof(tju_packet_t));
 
     new->header.source_port = src;
@@ -31,10 +29,13 @@ tju_packet_t *create_packet(uint16_t src, uint16_t dst, uint32_t seq,
     new->header.advertised_window = adv_window;
     new->header.ext = ext;
 
-    if (len > 0) {
+    if (len > 0)
+    {
         new->data = malloc(len);
         new->data = memcpy(new->data, data, len);
-    } else {
+    }
+    else
+    {
         new->data = NULL;
     }
 
@@ -46,14 +47,13 @@ tju_packet_t *create_packet(uint16_t src, uint16_t dst, uint32_t seq,
  构造tju_packet_t
  返回其对应的字符串
  */
-char *create_packet_buf(uint16_t src, uint16_t dst, uint32_t seq, uint32_t ack,
-                        uint16_t hlen, uint16_t plen, uint8_t flags,
-                        uint16_t adv_window, uint8_t ext, char *data, int len) {
+char *create_packet_buf(uint16_t src, uint16_t dst, uint32_t seq, uint32_t ack, uint16_t hlen, uint16_t plen,
+                        uint8_t flags, uint16_t adv_window, uint8_t ext, char *data, int len)
+{
     tju_packet_t *temp;
     char *final;
 
-    temp = create_packet(src, dst, seq, ack, hlen, plen, flags, adv_window, ext,
-                         data, len);
+    temp = create_packet(src, dst, seq, ack, hlen, plen, flags, adv_window, ext, data, len);
 
     final = packet_to_buf(temp);
     free_packet(temp);
@@ -63,8 +63,10 @@ char *create_packet_buf(uint16_t src, uint16_t dst, uint32_t seq, uint32_t ack,
 /*
  清除一个tju_packet_t的内存占用
  */
-void free_packet(tju_packet_t *packet) {
-    if (packet->data != NULL) free(packet->data);
+void free_packet(tju_packet_t *packet)
+{
+    if (packet->data != NULL)
+        free(packet->data);
     free(packet);
 }
 
@@ -74,55 +76,64 @@ void free_packet(tju_packet_t *packet) {
  找到并返回对应的字段
 */
 
-uint16_t get_src(char *msg) {
+uint16_t get_src(char *msg)
+{
     int offset = 0;
     uint16_t var;
     memcpy(&var, msg + offset, SIZE16);
     return ntohs(var);
 }
-uint16_t get_dst(char *msg) {
+uint16_t get_dst(char *msg)
+{
     int offset = 2;
     uint16_t var;
     memcpy(&var, msg + offset, SIZE16);
     return ntohs(var);
 }
-uint32_t get_seq(char *msg) {
+uint32_t get_seq(char *msg)
+{
     int offset = 4;
     uint32_t var;
     memcpy(&var, msg + offset, SIZE32);
     return ntohl(var);
 }
-uint32_t get_ack(char *msg) {
+uint32_t get_ack(char *msg)
+{
     int offset = 8;
     uint32_t var;
     memcpy(&var, msg + offset, SIZE32);
     return ntohl(var);
 }
-uint16_t get_hlen(char *msg) {
+uint16_t get_hlen(char *msg)
+{
     int offset = 12;
     uint16_t var;
     memcpy(&var, msg + offset, SIZE16);
     return ntohs(var);
 }
-uint16_t get_plen(char *msg) {
+uint16_t get_plen(char *msg)
+{
     int offset = 14;
     uint16_t var;
     memcpy(&var, msg + offset, SIZE16);
     return ntohs(var);
 }
-uint8_t get_flags(char *msg) {
+uint8_t get_flags(char *msg)
+{
     int offset = 16;
     uint8_t var;
     memcpy(&var, msg + offset, SIZE8);
     return var;
 }
-uint16_t get_advertised_window(char *msg) {
+uint16_t get_advertised_window(char *msg)
+{
     int offset = 17;
     uint16_t var;
     memcpy(&var, msg + offset, SIZE16);
     return ntohs(var);
 }
-uint8_t get_ext(char *msg) {
+uint8_t get_ext(char *msg)
+{
     int offset = 19;
     uint8_t var;
     memcpy(&var, msg + offset, SIZE8);
@@ -137,9 +148,9 @@ uint8_t get_ext(char *msg) {
  传入header所需的各种数据
  构造并返回header的字符串
  */
-char *header_in_char(uint16_t src, uint16_t dst, uint32_t seq, uint32_t ack,
-                     uint16_t hlen, uint16_t plen, uint8_t flags,
-                     uint16_t adv_window, uint8_t ext) {
+char *header_in_char(uint16_t src, uint16_t dst, uint32_t seq, uint32_t ack, uint16_t hlen, uint16_t plen,
+                     uint8_t flags, uint16_t adv_window, uint8_t ext)
+{
     uint16_t temp16;
     uint32_t temp32;
 
@@ -187,15 +198,15 @@ char *header_in_char(uint16_t src, uint16_t dst, uint32_t seq, uint32_t ack,
  根据传入的tju_packet_t指针
  构造并返回对应的字符串
  */
-char *packet_to_buf(tju_packet_t *p) {
-    char *msg = header_in_char(
-        p->header.source_port, p->header.destination_port, p->header.seq_num,
-        p->header.ack_num, p->header.hlen, p->header.plen, p->header.flags,
-        p->header.advertised_window, p->header.ext);
+char *packet_to_buf(tju_packet_t *p)
+{
+    char *msg =
+        header_in_char(p->header.source_port, p->header.destination_port, p->header.seq_num, p->header.ack_num,
+                       p->header.hlen, p->header.plen, p->header.flags, p->header.advertised_window, p->header.ext);
 
-    if (p->header.plen > p->header.hlen) {
-        memcpy(msg + (p->header.hlen), p->data,
-               (p->header.plen - (p->header.hlen)));
+    if (p->header.plen > p->header.hlen)
+    {
+        memcpy(msg + (p->header.hlen), p->data, (p->header.plen - (p->header.hlen)));
     }
 
     return msg;

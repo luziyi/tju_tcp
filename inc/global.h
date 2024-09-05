@@ -81,10 +81,10 @@ typedef struct
 // 注释的内容如果想用就可以用 不想用就删掉 仅仅提供思路和灵感
 typedef struct
 {
-    char received[TCP_RECVWN_SIZE];
-    // received_packet_t *head;
-    char buf[TCP_RECVWN_SIZE];
-    uint8_t marked[TCP_RECVWN_SIZE];
+    // char received[TCP_RECVWN_SIZE];
+    // // received_packet_t *head;
+    // char buf[TCP_RECVWN_SIZE];
+    // uint8_t marked[TCP_RECVWN_SIZE];
     uint32_t expect_seq;
 } receiver_window_t;
 

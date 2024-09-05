@@ -158,9 +158,10 @@ void *send_thread(void *arg)
                     memcpy(pkt, sock->sending_buf, len);
 
                     // 组装 packet
-                    char *msg = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port,
-                                                  sock->window.wnd_send->nextseq, 1 + 1, DEFAULT_HEADER_LEN,
-                                                  len + DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, pkt, len);
+                    char *msg =
+                        create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port,
+                                          sock->window.wnd_send->nextseq, sock->window.wnd_recv->expect_seq,
+                                          DEFAULT_HEADER_LEN, len + DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, pkt, len);
 
                     // 发送
                     sendToLayer3(msg, DEFAULT_HEADER_LEN + len);
@@ -171,14 +172,11 @@ void *send_thread(void *arg)
                     // 释放
                     free(pkt);
                     free(msg);
-
-                    // 释放发送缓存区
                     char *new_buf = malloc(sock->sending_len - len);
                     memcpy(new_buf, sock->sending_buf + len, sock->sending_len - len);
                     free(sock->sending_buf);
                     sock->sending_buf = new_buf;
                     sock->sending_len -= len;
-
                     _debug_("send a packet: len = %d", len);
                 }
 
