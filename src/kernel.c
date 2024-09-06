@@ -164,10 +164,7 @@ void *send_thread(void *arg)
                                           DEFAULT_HEADER_LEN, len + DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, pkt, len);
 
                     // 发送
-                    sendToLayer3(msg, DEFAULT_HEADER_LEN + len);
-                    log_event(sock->file, "SEND", "seq:%d ack:%d flag:%d length:%d", get_seq(msg), get_ack(msg),
-                              get_flags(msg), get_plen(msg) - DEFAULT_HEADER_LEN);
-                    sock->window.wnd_send->nextseq += len;
+                    send_pkt(sock, msg, len + DEFAULT_HEADER_LEN);
 
                     // 释放
                     free(pkt);
@@ -341,4 +338,20 @@ void send_pkt(tju_tcp_t *sock, char *pkt, int len)
     log_event(sock->file, "SEND", "seq:%d ack:%d flag:%d length:%d", get_seq(pkt), get_ack(pkt), get_flags(pkt),
               get_plen(pkt) - DEFAULT_HEADER_LEN);
     sock->window.wnd_send->nextseq += len == DEFAULT_HEADER_LEN ? 1 : get_plen(pkt) - DEFAULT_HEADER_LEN;
+
+    if(sock->resend_list->count == MAX_PKG){
+        _debug_("重传列表已满，链接状态差，丢弃该数据包");
+        return;
+    }
+    int i = 0;
+    while (sock->resend_list->pkt[i] != NULL)
+    {
+        i++;
+    }
+    sock->resend_list->pkt[i] = pkt;
+    sock->resend_list->send_time[i] = getCurrentTime();
+    sock->resend_list->count++;
+
+    _info_("add a packet to resend list, count = %d", sock->resend_list->count);
+
 }

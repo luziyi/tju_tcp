@@ -28,7 +28,7 @@ tju_tcp_t *tju_socket()
         }
     }
 
-    //初始化发送窗口
+    // 初始化发送窗口
     sock->window.wnd_send = (sender_window_t *)malloc(sizeof(sender_window_t));
 
     sock->window.wnd_recv = (receiver_window_t *)malloc(sizeof(receiver_window_t));
@@ -37,7 +37,7 @@ tju_tcp_t *tju_socket()
     sock->window.wnd_send->base = isn_gen();
     sock->window.wnd_send->nextseq = sock->window.wnd_send->base;
     // sock->window.wnd_send->estmated_rtt = 0;
-    // sock->window.wnd_send->ack_cnt = 0;
+    sock->window.wnd_send->ack_cnt = 0;
     // pthread_mutex_init(&(sock->window.wnd_send->ack_cnt_lock), NULL);
     // sock->window.wnd_send->send_time.tv_sec = 0;
     // sock->window.wnd_send->send_time.tv_usec = 0;
@@ -47,6 +47,8 @@ tju_tcp_t *tju_socket()
     // sock->window.wnd_send->congestion_status = SLOW_START;
     // sock->window.wnd_send->cwnd = 1;
     // sock->window.wnd_send->ssthresh = 16;
+    sock->resend_list = (resend *)malloc(sizeof(resend));
+    sock->resend_list->count = 0;
 
     pthread_mutex_init(&(sock->state_lock), NULL);
     pthread_mutex_init(&(sock->send_lock), NULL);
@@ -214,6 +216,21 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
     tju_tcp_t *new_conn = NULL;
 
     log_event(sock->file, "RECV", "seq:%d ack:%d flag:%d length:%d", seq, ack, flag, data_len);
+
+    for (int i = 0; i < MAX_PKG; i++)
+    {
+        if (sock->resend_list->pkt[i] == NULL)
+            continue;
+        if (get_seq(sock->resend_list->pkt[i]) < ack)
+        {
+            _msg_("seq: %d, ack: %d", get_seq(sock->resend_list->pkt[i]), ack);
+            sock->resend_list->pkt[i] = NULL;
+            sock->resend_list->send_time[i] = 0;
+            sock->resend_list->count--;
+            _msg_("remove a packet from resend list, count = %d", sock->resend_list->count);
+        }
+    }
+
     if (sock->window.wnd_recv->expect_seq == 0)
     {
         sock->window.wnd_recv->expect_seq = seq + ((data_len == 0) ? 1 : data_len);
@@ -222,7 +239,15 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
     {
         if (sock->window.wnd_recv->expect_seq != seq)
         {
-            _debug_("seq error! expect_seq = %d, seq = %d", sock->window.wnd_recv->expect_seq, seq);
+            // _debug_("seq error! expect_seq = %d, seq = %d", sock->window.wnd_recv->expect_seq, seq);
+            if (sock->window.wnd_send->base == ack)
+            {
+                sock->window.wnd_send->ack_cnt++;
+                if (sock->window.wnd_send->ack_cnt == 3)
+                {
+                    // resend
+                }
+            }
         }
         else
         {
