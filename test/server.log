@@ -1,22 +1,72 @@
-[服务端] 测试双方同时断开连接的情况
-[服务端] 收到一个TCP数据包 src=5678 dst=1234 seq=1 ack=0 flags=8
-[服务端] 此时服务器状态为 LISTEN, 检查SYN数据包
-[服务端] 客户端发送的第一个SYN报文检验通过
-[服务端] 发送SYNACK 进入SYN_RECV状态 等待客户端第三次握手的ACK
-[服务端] 发送SYNACK src=1324 dst=5678 seq=646 ack=2 flags=12
-[服务端] 收到一个TCP数据包 src=5678 dst=1234 seq=2 ack=647 flags=4
-[服务端] 此时服务器状态为 SYN_RECV, 检查ACK数据包
-[服务端] 客户端发送的ACK报文检验通过, 成功建立连接, 服务端状态转为ESTABLISHED
-[服务端] 收到一个TCP数据包 src=5678 dst=1234 seq=1 ack=2 flags=6
-[服务端] 此时服务器状态为 ESTABLISHED/FIN_WAIT_1, 检查FIN数据包
-[服务端] 客户端发送的FIN报文检验通过
-{{FIRST FIN PASSED TEST}}
-[服务端] 模拟正常双方同时断开连接情况 服务端假装没有收到FIN包 先按照没有收到FIN的情况发FIN
-[服务端] 然后再收到客户端的FIN, 发送ACK响应
-[服务端] 发送FINACK src=1324 dst=5678 seq=647 ack=2 flags=6
-[服务端] 发送ACK src=1324 dst=5678 seq=648 ack=2 flags=4
-[服务端] 状态转为 CLOSING
-[服务端] 收到一个TCP数据包 src=5678 dst=1234 seq=2 ack=648 flags=4
-[服务端] 此时服务器状态为 LAST_ACK/CLOSING, 检查ACK数据包
-[服务端] 客户端发送的ACK报文检验通过
-{{FINAL ACK PASSED TEST}}
+[1;34m [INFO] [2024-09-08 10:08:36.057877] [0mstartSimulation on hostname: server 
+successfully created bankend thread
+[1;91m [DEBUG] [2024-09-08 10:08:36.121238] [0mtju_handle_packet 
+[1;91m [DEBUG] [2024-09-08 10:08:36.121289] [0mdata_len = 0 
+[1;91m [DEBUG] [2024-09-08 10:08:36.121292] [0mserver: SYN received! 
+[1;34m [INFO] [2024-09-08 10:08:36.121321] [0madd a packet to resend list, count = 1 
+[1;91m [DEBUG] [2024-09-08 10:08:36.174643] [0mtju_handle_packet 
+[1;32m [MSG] [2024-09-08 10:08:36.174682] [0mseq: 1973, ack: 1974 
+[1;32m [MSG] [2024-09-08 10:08:36.174685] [0mremove a packet from resend list, count = 0 
+[1;91m [DEBUG] [2024-09-08 10:08:36.174686] [0mdata_len = 0 
+[1;91m [DEBUG] [2024-09-08 10:08:36.174689] [0mserver: ACK received! 
+Interrupted
+[1;91m [DEBUG] [2024-09-08 10:08:44.470933] [0mtju_handle_packet 
+[1;91m [DEBUG] [2024-09-08 10:08:44.471005] [0mdata_len = 16 
+[1;91m [DEBUG] [2024-09-08 10:08:44.471013] [0mFIN received! sock state -> CLOSE_WAIT 
+[RDT TEST] server recv test message0
+[1;34m [INFO] [2024-09-08 10:08:44.471063] [0madd a packet to resend list, count = 1 
+[1;91m [DEBUG] [2024-09-08 10:08:44.471305] [0mACK sent! 
+[1;34m [INFO] [2024-09-08 10:08:45.472345] [0madd a packet to resend list, count = 2 
+[1;91m [DEBUG] [2024-09-08 10:08:45.472360] [0mFIN sent! sock state -> LAST_ACK 
+[1;91m [DEBUG] [2024-09-08 10:08:45.472378] [0mtju_handle_packet 
+[1;91m [DEBUG] [2024-09-08 10:08:45.472382] [0mdata_len = 784 
+[RDT TEST] server recv test message1
+[1;91m [DEBUG] [2024-09-08 10:08:45.472384] [0mACK received! sock state -> CLOSED 
+[RDT TEST] server recv test message2
+[RDT TEST] server recv test message3
+[RDT TEST] server recv test message4
+[RDT TEST] server recv test message5
+[RDT TEST] server recv test message6
+[RDT TEST] server recv test message7
+[RDT TEST] server recv test message8
+[RDT TEST] server recv test message9
+[RDT TEST] server recv test message10
+[RDT TEST] server recv test message11
+[RDT TEST] server recv test message12
+[RDT TEST] server recv test message13
+[RDT TEST] server recv test message14
+[RDT TEST] server recv test message15
+[RDT TEST] server recv test message16
+[RDT TEST] server recv test message17
+[RDT TEST] server recv test message18
+[RDT TEST] server recv test message19
+[RDT TEST] server recv test message20
+[RDT TEST] server recv test message21
+[RDT TEST] server recv test message22
+[RDT TEST] server recv test message23
+[RDT TEST] server recv test message24
+[RDT TEST] server recv test message25
+[RDT TEST] server recv test message26
+[RDT TEST] server recv test message27
+[RDT TEST] server recv test message28
+[RDT TEST] server recv test message29
+[RDT TEST] server recv test message30
+[RDT TEST] server recv test message31
+[RDT TEST] server recv test message32
+[RDT TEST] server recv test message33
+[RDT TEST] server recv test message34
+[RDT TEST] server recv test message35
+[RDT TEST] server recv test message36
+[RDT TEST] server recv test message37
+[RDT TEST] server recv test message38
+[RDT TEST] server recv test message39
+[RDT TEST] server recv test message40
+[RDT TEST] server recv test message41
+[RDT TEST] server recv test message42
+[RDT TEST] server recv test message43
+[RDT TEST] server recv test message44
+[RDT TEST] server recv test message45
+[RDT TEST] server recv test message46
+[RDT TEST] server recv test message47
+[RDT TEST] server recv test message48
+[RDT TEST] server recv test message49
