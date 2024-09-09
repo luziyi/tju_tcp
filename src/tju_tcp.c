@@ -1,5 +1,4 @@
 #include "tju_tcp.h"
-void *timer(void *arg);
 /*
 创建 TCP socket
 初始化对应的结构体
@@ -73,6 +72,8 @@ tju_tcp_t *tju_socket()
 		perror("ERROR condition variable not set\n");
 		exit(-1);
 	}
+	pthread_t send_timer;
+	pthread_create(&(send_timer), NULL, (void * (*)(void *))timer_start, (void *)sock);
 
 	return sock;
 }
