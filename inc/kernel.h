@@ -2,6 +2,7 @@
 #define _KERNEL_H_
 
 #include "debug.h"
+
 #include "global.h"
 #include "tju_packet.h"
 #include "tju_tcp.h"

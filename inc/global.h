@@ -17,8 +17,8 @@
 #include <unistd.h>
 
 // ip修改在这里
-#define SERVER_IP "172.17.0.6" // 3 6
-#define CLIENT_IP "172.17.0.5" // 2 5
+#define SERVER_IP "172.17.0.3" // 3 6
+#define CLIENT_IP "172.17.0.2" // 2 5
 
 // 单位是byte
 #define SIZE32 4
@@ -62,8 +62,9 @@
 
 typedef struct{
     char *pkt[MAX_PKG];
-    int send_time[MAX_PKG];
+    long send_time[MAX_PKG];
     int count;
+	pthread_mutex_t send_list;
 }resend;
 
 // TCP 发送窗口
