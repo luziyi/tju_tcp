@@ -180,53 +180,6 @@ void *send_thread(void *arg)
 				pthread_mutex_unlock(&(sock->send_lock)); // 解锁
 			}
 		}
-
-		// for (int i = 0; i < MAX_SOCK; i++)
-		// {
-		// 	if (established_socks[i] != NULL)
-		// 	{
-		// 		tju_tcp_t *sock = established_socks[i];
-		// 		for (int i = 0; i < MAX_PKG; i++)
-		// 		{
-		// 			// pthread_mutex_lock(&(sock->resend_list->send_list));
-		// 			if (sock->resend_list->pkt[i] == NULL)
-		// 			{
-		// 				continue;
-		// 			}
-		// 			if (getCurrentTime() - sock->resend_list->send_time[i] > 1000000)
-		// 			{
-		// 				sendToLayer3(sock->resend_list->pkt[i], get_plen(sock->resend_list->pkt[i]));
-		// 				sock->resend_list->send_time[i] = getCurrentTime();
-		// 				_debug_("resend a packet");
-		// 			}
-		// 			// pthread_mutex_unlock(&(sock->resend_list->send_list));
-		// 			sleep(1);
-		// 		}
-		// 	}
-		// }
-		// for (int i = 0; i < MAX_SOCK; i++)
-		// {
-		// 	if (listen_socks[i] != NULL)
-		// 	{
-		// 		tju_tcp_t *sock = listen_socks[i];
-		// 		for (int i = 0; i < MAX_PKG; i++)
-		// 		{
-		// 			// pthread_mutex_lock(&(sock->resend_list->send_list));
-		// 			if (sock->resend_list->pkt[i] == NULL)
-		// 			{
-		// 				continue;
-		// 			}
-		// 			if (getCurrentTime() - sock->resend_list->send_time[i] > 1000000)
-		// 			{
-		// 				sendToLayer3(sock->resend_list->pkt[i], get_plen(sock->resend_list->pkt[i]));
-		// 				sock->resend_list->send_time[i] = getCurrentTime();
-		// 				_debug_("resend a packet");
-		// 			}
-		// 			// pthread_mutex_unlock(&(sock->resend_list->send_list));
-		// 			sleep(1);
-		// 		}
-		// 	}
-		// }
 	}
 }
 
@@ -394,15 +347,11 @@ void send_pkt(tju_tcp_t *sock, char *pkt, int len)
 		return;
 	}
 	int i = 0;
+	
 	while (sock->resend_list->pkt[i] != NULL)
 	{
 		i++;
 	}
-
-	// if(get_flags(pkt) == ACK_FLAG_MASK){
-	// 	_debug_("byebye");
-	// 	return;
-	// }
 
 	pthread_mutex_lock(&(sock->resend_list->send_list));
 	sock->resend_list->pkt[i] = malloc(len);

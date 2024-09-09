@@ -55,7 +55,6 @@ int main(int argc, char **argv)
     tju_recv(new_conn, (void *)buf, 10);
     _msg_("recv: %s", buf);
 
-    while (new_conn->state != CLOSED)
-        ;
-    _debug_("server CLOSED");
+    sleep(3);
+    tju_close(new_conn);
 }
