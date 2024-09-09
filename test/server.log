@@ -1,27 +1,43 @@
-[1;34m [INFO] [2024-09-08 10:08:36.057877] [0mstartSimulation on hostname: server 
+[1;34m [INFO] [2024-09-09 10:44:12.621861] [0mstartSimulation on hostname: server 
 successfully created bankend thread
-[1;91m [DEBUG] [2024-09-08 10:08:36.121238] [0mtju_handle_packet 
-[1;91m [DEBUG] [2024-09-08 10:08:36.121289] [0mdata_len = 0 
-[1;91m [DEBUG] [2024-09-08 10:08:36.121292] [0mserver: SYN received! 
-[1;34m [INFO] [2024-09-08 10:08:36.121321] [0madd a packet to resend list, count = 1 
-[1;91m [DEBUG] [2024-09-08 10:08:36.174643] [0mtju_handle_packet 
-[1;32m [MSG] [2024-09-08 10:08:36.174682] [0mseq: 1973, ack: 1974 
-[1;32m [MSG] [2024-09-08 10:08:36.174685] [0mremove a packet from resend list, count = 0 
-[1;91m [DEBUG] [2024-09-08 10:08:36.174686] [0mdata_len = 0 
-[1;91m [DEBUG] [2024-09-08 10:08:36.174689] [0mserver: ACK received! 
+[1;91m [DEBUG] [2024-09-09 10:44:12.702247] [0mtju_handle_packet 
+[1;91m [DEBUG] [2024-09-09 10:44:12.702414] [0mdata_len = 0 
+[1;91m [DEBUG] [2024-09-09 10:44:12.702426] [0mserver: SYN received! 
+[1;34m [INFO] [2024-09-09 10:44:12.702463] [0madd a packet to resend list, count = 1 
+[1;91m [DEBUG] [2024-09-09 10:44:12.766162] [0mtju_handle_packet 
+[1;32m [MSG] [2024-09-09 10:44:12.766203] [0mseq: 3651, ack: 3652 
+[1;32m [MSG] [2024-09-09 10:44:12.766207] [0mremove a packet from resend list, count = 0 
+[1;91m [DEBUG] [2024-09-09 10:44:12.766209] [0mdata_len = 0 
+[1;91m [DEBUG] [2024-09-09 10:44:12.766212] [0mserver: ACK received! 
 Interrupted
-[1;91m [DEBUG] [2024-09-08 10:08:44.470933] [0mtju_handle_packet 
-[1;91m [DEBUG] [2024-09-08 10:08:44.471005] [0mdata_len = 16 
-[1;91m [DEBUG] [2024-09-08 10:08:44.471013] [0mFIN received! sock state -> CLOSE_WAIT 
+[1;91m [DEBUG] [2024-09-09 10:44:14.755398] [0mtju_handle_packet 
+[1;91m [DEBUG] [2024-09-09 10:44:14.755439] [0mdata_len = 0 
+[1;91m [DEBUG] [2024-09-09 10:44:15.778463] [0mtju_handle_packet 
+[1;91m [DEBUG] [2024-09-09 10:44:15.778505] [0mdata_len = 0 
+[1;34m [INFO] [2024-09-09 10:44:15.778532] [0madd a packet to resend list, count = 1 
+[1;91m [DEBUG] [2024-09-09 10:44:15.831206] [0mtju_handle_packet 
+[1;32m [MSG] [2024-09-09 10:44:15.831251] [0mseq: 3652, ack: 3653 
+[1;32m [MSG] [2024-09-09 10:44:15.831254] [0mremove a packet from resend list, count = 0 
+[1;91m [DEBUG] [2024-09-09 10:44:15.831256] [0mdata_len = 0 
+[1;91m [DEBUG] [2024-09-09 10:44:17.987006] [0mtju_handle_packet 
+3 duplicate acks
+[1;91m [DEBUG] [2024-09-09 10:44:17.987061] [0mdata_len = 0 
+[1;34m [INFO] [2024-09-09 10:44:17.987079] [0madd a packet to resend list, count = 1 
+[1;91m [DEBUG] [2024-09-09 10:44:19.328916] [0mtju_handle_packet 
+[1;32m [MSG] [2024-09-09 10:44:19.328959] [0mseq: 3653, ack: 3654 
+[1;32m [MSG] [2024-09-09 10:44:19.328962] [0mremove a packet from resend list, count = 0 
+[1;91m [DEBUG] [2024-09-09 10:44:19.328965] [0mdata_len = 0 
+[1;91m [DEBUG] [2024-09-09 10:44:20.598374] [0mtju_handle_packet 
+[1;91m [DEBUG] [2024-09-09 10:44:20.598413] [0mdata_len = 0 
+[1;34m [INFO] [2024-09-09 10:44:20.598440] [0madd a packet to resend list, count = 1 
+[1;91m [DEBUG] [2024-09-09 10:44:21.043751] [0mtju_handle_packet 
+[1;91m [DEBUG] [2024-09-09 10:44:21.043793] [0mdata_len = 96 
+[1;91m [DEBUG] [2024-09-09 10:44:21.043812] [0mtju_handle_packet 
+[1;91m [DEBUG] [2024-09-09 10:44:21.043818] [0mdata_len = 304 
+[1;91m [DEBUG] [2024-09-09 10:44:21.043823] [0mtju_handle_packet 
+[1;91m [DEBUG] [2024-09-09 10:44:21.043828] [0mdata_len = 400 
 [RDT TEST] server recv test message0
-[1;34m [INFO] [2024-09-08 10:08:44.471063] [0madd a packet to resend list, count = 1 
-[1;91m [DEBUG] [2024-09-08 10:08:44.471305] [0mACK sent! 
-[1;34m [INFO] [2024-09-08 10:08:45.472345] [0madd a packet to resend list, count = 2 
-[1;91m [DEBUG] [2024-09-08 10:08:45.472360] [0mFIN sent! sock state -> LAST_ACK 
-[1;91m [DEBUG] [2024-09-08 10:08:45.472378] [0mtju_handle_packet 
-[1;91m [DEBUG] [2024-09-08 10:08:45.472382] [0mdata_len = 784 
 [RDT TEST] server recv test message1
-[1;91m [DEBUG] [2024-09-08 10:08:45.472384] [0mACK received! sock state -> CLOSED 
 [RDT TEST] server recv test message2
 [RDT TEST] server recv test message3
 [RDT TEST] server recv test message4

@@ -259,236 +259,235 @@ int tju_handle_packet(tju_tcp_t *sock, char *pkt)
                 if (sock->window.wnd_send->ack_cnt == 3)
                 {
                     printf("3 duplicate acks\n");
-                    for (int i = 0; i < MAX_PKG; i++)
-                    {
-                        if (sock->resend_list->pkt[i] == NULL)
-                            continue;
-                        if (get_seq(sock->resend_list->pkt[i]) == ack)
-                        {
-                            sendToLayer3(sock->resend_list->pkt[i], get_plen(sock->resend_list->pkt[i]));
-                        }
-                    }
+					for(int i=0;i<MAX_PKG;i++)
+					{
+						if(sock->resend_list->pkt[i]==NULL) continue;
+						if(get_seq(sock->resend_list->pkt[i])==ack)
+						{
+							sendToLayer3(sock->resend_list->pkt[i], get_plen(sock->resend_list->pkt[i]));
+						}
+					}
                 }
             }
         }
+        else
+        {
+            sock->window.wnd_recv->expect_seq += (data_len == 0) ? 1 : data_len;
+        }
+    }
+
+    _debug_("data_len = %d", data_len);
+
+    // 把收到的数据放到接受缓冲区
+    while (pthread_mutex_lock(&(sock->recv_lock)) != 0)
+        ; // 加锁
+
+    if (sock->received_buf == NULL)
+    {
+        sock->received_buf = malloc(data_len);
     }
     else
     {
-        sock->window.wnd_recv->expect_seq += (data_len == 0) ? 1 : data_len;
+        sock->received_buf = realloc(sock->received_buf, sock->received_len + data_len);
     }
-}
+    memcpy(sock->received_buf + sock->received_len, pkt + DEFAULT_HEADER_LEN, data_len);
+    sock->received_len += data_len;
 
-_debug_("data_len = %d", data_len);
+    pthread_mutex_unlock(&(sock->recv_lock)); // 解锁
 
-// 把收到的数据放到接受缓冲区
-while (pthread_mutex_lock(&(sock->recv_lock)) != 0)
-    ; // 加锁
-
-if (sock->received_buf == NULL)
-{
-    sock->received_buf = malloc(data_len);
-}
-else
-{
-    sock->received_buf = realloc(sock->received_buf, sock->received_len + data_len);
-}
-memcpy(sock->received_buf + sock->received_len, pkt + DEFAULT_HEADER_LEN, data_len);
-sock->received_len += data_len;
-
-pthread_mutex_unlock(&(sock->recv_lock)); // 解锁
-
-if (flag == ACK_FLAG_MASK)
-{
-    sock->window.wnd_send->base = ack;
-}
-
-switch (sock->state)
-{
-case LISTEN:
-    if (flag == SYN_FLAG_MASK)
-    {
-        _debug_("server: SYN received!");
-
-        pthread_mutex_lock(&(sock->state_lock));
-        sock->state = SYN_RECV;
-        pthread_mutex_unlock(&(sock->state_lock));
-
-        char *pkt =
-            create_packet_buf(dst_port, src_port, sock->window.wnd_send->nextseq, sock->window.wnd_recv->expect_seq,
-                              DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, SYN_FLAG_MASK | ACK_FLAG_MASK, 1, 0, NULL, 0);
-        send_pkt(sock, pkt, DEFAULT_HEADER_LEN);
-    }
-    break;
-case SYN_SENT:
-    if (flag == (SYN_FLAG_MASK | ACK_FLAG_MASK))
-    {
-        _debug_("client: SYN_ACK received!");
-        char *pkt =
-            create_packet_buf(dst_port, src_port, sock->window.wnd_send->nextseq, sock->window.wnd_recv->expect_seq,
-                              DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
-        send_pkt(sock, pkt, DEFAULT_HEADER_LEN);
-
-        pthread_mutex_lock(&(sock->state_lock));
-        sock->state = ESTABLISHED;
-        pthread_mutex_unlock(&(sock->state_lock));
-    }
-    break;
-case SYN_RECV:
     if (flag == ACK_FLAG_MASK)
     {
-        _debug_("server: ACK received!");
-        tju_tcp_t *new_conn = (tju_tcp_t *)malloc(sizeof(tju_tcp_t));
-        memcpy(new_conn, sock, sizeof(tju_tcp_t));
-
-        tju_sock_addr local_addr, remote_addr;
-
-        remote_addr.ip = inet_network(CLIENT_IP);
-        remote_addr.port = src_port;
-
-        local_addr.ip = sock->bind_addr.ip;
-        local_addr.port = sock->bind_addr.port;
-
-        new_conn->established_local_addr = local_addr;
-        new_conn->established_remote_addr = remote_addr;
-
-        pthread_mutex_lock(&(new_conn->state_lock));
-        new_conn->state = ESTABLISHED;
-        pthread_mutex_unlock(&(new_conn->state_lock));
-
-        int hashval = cal_hash(local_addr.ip, local_addr.port, remote_addr.ip, remote_addr.port);
-        established_socks[hashval] = new_conn;
-
-        enqueue(&accept_queue, new_conn);
-        sock->state = LISTEN;
+        sock->window.wnd_send->base = ack;
     }
-    break;
 
-case ESTABLISHED:
-    if (flag == (FIN_FLAG_MASK | ACK_FLAG_MASK))
+    switch (sock->state)
     {
-        _debug_("FIN received! sock state -> CLOSE_WAIT");
-        char *pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port,
-                                      sock->window.wnd_send->nextseq, sock->window.wnd_recv->expect_seq,
-                                      DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
-        send_pkt(sock, pkt, DEFAULT_HEADER_LEN);
-        _debug_("ACK sent!");
+    case LISTEN:
+        if (flag == SYN_FLAG_MASK)
+        {
+            _debug_("server: SYN received!");
 
-        pthread_mutex_lock(&(sock->state_lock));
-        sock->state = CLOSE_WAIT;
-        pthread_mutex_unlock(&(sock->state_lock));
+            pthread_mutex_lock(&(sock->state_lock));
+            sock->state = SYN_RECV;
+            pthread_mutex_unlock(&(sock->state_lock));
 
-        // 如果服务器没有消息要发送，则关闭连接,如果发送缓冲区还有东西，则阻塞
-        sleep(1);
-        // 应用进程关闭
-        pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port,
-                                sock->window.wnd_send->nextseq, sock->window.wnd_recv->expect_seq, DEFAULT_HEADER_LEN,
-                                DEFAULT_HEADER_LEN, (FIN_FLAG_MASK | ACK_FLAG_MASK), 1, 0, NULL, 0);
-        send_pkt(sock, pkt, DEFAULT_HEADER_LEN);
-        _debug_("FIN sent! sock state -> LAST_ACK");
-        pthread_mutex_lock(&(sock->state_lock));
-        sock->state = LAST_ACK;
-        pthread_mutex_unlock(&(sock->state_lock));
-    }
-    else
-    {
+            char *pkt =
+                create_packet_buf(dst_port, src_port, sock->window.wnd_send->nextseq, sock->window.wnd_recv->expect_seq,
+                                  DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, SYN_FLAG_MASK | ACK_FLAG_MASK, 1, 0, NULL, 0);
+            send_pkt(sock, pkt, DEFAULT_HEADER_LEN);
+        }
+        break;
+    case SYN_SENT:
+        if (flag == (SYN_FLAG_MASK | ACK_FLAG_MASK))
+        {
+            _debug_("client: SYN_ACK received!");
+            char *pkt =
+                create_packet_buf(dst_port, src_port, sock->window.wnd_send->nextseq, sock->window.wnd_recv->expect_seq,
+                                  DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
+            send_pkt(sock, pkt, DEFAULT_HEADER_LEN);
+
+            pthread_mutex_lock(&(sock->state_lock));
+            sock->state = ESTABLISHED;
+            pthread_mutex_unlock(&(sock->state_lock));
+        }
+        break;
+    case SYN_RECV:
         if (flag == ACK_FLAG_MASK)
         {
-            // 释放发送缓存区的部分空间
+            _debug_("server: ACK received!");
+            tju_tcp_t *new_conn = (tju_tcp_t *)malloc(sizeof(tju_tcp_t));
+            memcpy(new_conn, sock, sizeof(tju_tcp_t));
+
+            tju_sock_addr local_addr, remote_addr;
+
+            remote_addr.ip = inet_network(CLIENT_IP);
+            remote_addr.port = src_port;
+
+            local_addr.ip = sock->bind_addr.ip;
+            local_addr.port = sock->bind_addr.port;
+
+            new_conn->established_local_addr = local_addr;
+            new_conn->established_remote_addr = remote_addr;
+
+            pthread_mutex_lock(&(new_conn->state_lock));
+            new_conn->state = ESTABLISHED;
+            pthread_mutex_unlock(&(new_conn->state_lock));
+
+            int hashval = cal_hash(local_addr.ip, local_addr.port, remote_addr.ip, remote_addr.port);
+            established_socks[hashval] = new_conn;
+
+            enqueue(&accept_queue, new_conn);
+            sock->state = LISTEN;
         }
-        if (sock->received_buf == NULL)
+        break;
+
+    case ESTABLISHED:
+        if (flag == (FIN_FLAG_MASK | ACK_FLAG_MASK))
         {
-            // 发ack
+            _debug_("FIN received! sock state -> CLOSE_WAIT");
             char *pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port,
                                           sock->window.wnd_send->nextseq, sock->window.wnd_recv->expect_seq,
                                           DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
             send_pkt(sock, pkt, DEFAULT_HEADER_LEN);
+            _debug_("ACK sent!");
+
+            pthread_mutex_lock(&(sock->state_lock));
+            sock->state = CLOSE_WAIT;
+            pthread_mutex_unlock(&(sock->state_lock));
+
+            // 如果服务器没有消息要发送，则关闭连接,如果发送缓冲区还有东西，则阻塞
+            sleep(1);
+            // 应用进程关闭
+            pkt =
+                create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port,
+                                  sock->window.wnd_send->nextseq, sock->window.wnd_recv->expect_seq, DEFAULT_HEADER_LEN,
+                                  DEFAULT_HEADER_LEN, (FIN_FLAG_MASK | ACK_FLAG_MASK), 1, 0, NULL, 0);
+            send_pkt(sock, pkt, DEFAULT_HEADER_LEN);
+            _debug_("FIN sent! sock state -> LAST_ACK");
+            pthread_mutex_lock(&(sock->state_lock));
+            sock->state = LAST_ACK;
+            pthread_mutex_unlock(&(sock->state_lock));
         }
+        else
+        {
+            if (flag == ACK_FLAG_MASK)
+            {
+                // 释放发送缓存区的部分空间
+            }
+            if (sock->received_buf == NULL)
+            {
+                // 发ack
+                char *pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port,
+                                              sock->window.wnd_send->nextseq, sock->window.wnd_recv->expect_seq,
+                                              DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
+                send_pkt(sock, pkt, DEFAULT_HEADER_LEN);
+            }
+        }
+        break;
+
+    case FIN_WAIT_1:
+        if (flag == ACK_FLAG_MASK)
+        {
+            _debug_("ACK received! sock state -> FIN_WAIT_2");
+
+            pthread_mutex_lock(&(sock->state_lock));
+            sock->state = FIN_WAIT_2;
+            pthread_mutex_unlock(&(sock->state_lock));
+        }
+        else if (flag == (FIN_FLAG_MASK | ACK_FLAG_MASK))
+        {
+            // 发ack
+            _debug_("FIN received! sock state -> CLOSING");
+            char *pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port,
+                                          sock->window.wnd_send->nextseq, sock->window.wnd_recv->expect_seq,
+                                          DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
+            send_pkt(sock, pkt, DEFAULT_HEADER_LEN);
+
+            pthread_mutex_lock(&(sock->state_lock));
+            sock->state = CLOSING;
+            pthread_mutex_unlock(&(sock->state_lock));
+        }
+        else if (flag == (FIN_FLAG_MASK | ACK_FLAG_MASK))
+        {
+            // 发ack
+            _debug_("client FINACK received! sock state -> TIME_WAIT");
+            char *pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port,
+                                          sock->window.wnd_send->nextseq, sock->window.wnd_recv->expect_seq,
+                                          DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
+            send_pkt(sock, pkt, DEFAULT_HEADER_LEN);
+
+            sock->state = TIME_WAIT;
+            pthread_mutex_unlock(&(sock->state_lock));
+
+            sleep(2);
+
+            sock->state = CLOSED;
+        }
+        break;
+
+    case FIN_WAIT_2:
+        if (flag == (FIN_FLAG_MASK | ACK_FLAG_MASK))
+        {
+
+            _debug_("FIN received! sock state -> TIME_WAIT");
+            char *pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port,
+                                          sock->window.wnd_send->nextseq, sock->window.wnd_recv->expect_seq,
+                                          DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
+            send_pkt(sock, pkt, DEFAULT_HEADER_LEN);
+            _debug_("ACK sent!");
+            pthread_mutex_lock(&(sock->state_lock));
+            sock->state = TIME_WAIT;
+            pthread_mutex_unlock(&(sock->state_lock));
+
+            // //等待
+            // _debug_("sock state -> CLOSED");
+            // pthread_mutex_lock(&(sock->state_lock));
+            // sock->state = CLOSED;
+            // pthread_mutex_unlock(&(sock->state_lock));
+        }
+        break;
+
+    case LAST_ACK:
+        if (flag == ACK_FLAG_MASK)
+        {
+            _debug_("ACK received! sock state -> CLOSED");
+            pthread_mutex_lock(&(sock->state_lock));
+            sock->state = CLOSED;
+            pthread_mutex_unlock(&(sock->state_lock));
+        }
+        break;
+    case CLOSING:
+        if (flag == ACK_FLAG_MASK)
+        {
+            _debug_("ACK received! sock state -> TIME_WAIT");
+            pthread_mutex_lock(&(sock->state_lock));
+            sock->state = TIME_WAIT;
+            pthread_mutex_unlock(&(sock->state_lock));
+        }
+        break;
     }
-    break;
 
-case FIN_WAIT_1:
-    if (flag == ACK_FLAG_MASK)
-    {
-        _debug_("ACK received! sock state -> FIN_WAIT_2");
-
-        pthread_mutex_lock(&(sock->state_lock));
-        sock->state = FIN_WAIT_2;
-        pthread_mutex_unlock(&(sock->state_lock));
-    }
-    else if (flag == (FIN_FLAG_MASK | ACK_FLAG_MASK))
-    {
-        // 发ack
-        _debug_("FIN received! sock state -> CLOSING");
-        char *pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port,
-                                      sock->window.wnd_send->nextseq, sock->window.wnd_recv->expect_seq,
-                                      DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
-        send_pkt(sock, pkt, DEFAULT_HEADER_LEN);
-
-        pthread_mutex_lock(&(sock->state_lock));
-        sock->state = CLOSING;
-        pthread_mutex_unlock(&(sock->state_lock));
-    }
-    else if (flag == (FIN_FLAG_MASK | ACK_FLAG_MASK))
-    {
-        // 发ack
-        _debug_("client FINACK received! sock state -> TIME_WAIT");
-        char *pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port,
-                                      sock->window.wnd_send->nextseq, sock->window.wnd_recv->expect_seq,
-                                      DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
-        send_pkt(sock, pkt, DEFAULT_HEADER_LEN);
-
-        sock->state = TIME_WAIT;
-        pthread_mutex_unlock(&(sock->state_lock));
-
-        sleep(2);
-
-        sock->state = CLOSED;
-    }
-    break;
-
-case FIN_WAIT_2:
-    if (flag == (FIN_FLAG_MASK | ACK_FLAG_MASK))
-    {
-
-        _debug_("FIN received! sock state -> TIME_WAIT");
-        char *pkt = create_packet_buf(sock->established_local_addr.port, sock->established_remote_addr.port,
-                                      sock->window.wnd_send->nextseq, sock->window.wnd_recv->expect_seq,
-                                      DEFAULT_HEADER_LEN, DEFAULT_HEADER_LEN, ACK_FLAG_MASK, 1, 0, NULL, 0);
-        send_pkt(sock, pkt, DEFAULT_HEADER_LEN);
-        _debug_("ACK sent!");
-        pthread_mutex_lock(&(sock->state_lock));
-        sock->state = TIME_WAIT;
-        pthread_mutex_unlock(&(sock->state_lock));
-
-        // //等待
-        // _debug_("sock state -> CLOSED");
-        // pthread_mutex_lock(&(sock->state_lock));
-        // sock->state = CLOSED;
-        // pthread_mutex_unlock(&(sock->state_lock));
-    }
-    break;
-
-case LAST_ACK:
-    if (flag == ACK_FLAG_MASK)
-    {
-        _debug_("ACK received! sock state -> CLOSED");
-        pthread_mutex_lock(&(sock->state_lock));
-        sock->state = CLOSED;
-        pthread_mutex_unlock(&(sock->state_lock));
-    }
-    break;
-case CLOSING:
-    if (flag == ACK_FLAG_MASK)
-    {
-        _debug_("ACK received! sock state -> TIME_WAIT");
-        pthread_mutex_lock(&(sock->state_lock));
-        sock->state = TIME_WAIT;
-        pthread_mutex_unlock(&(sock->state_lock));
-    }
-    break;
-}
-
-return 0;
+    return 0;
 }
 
 int tju_close(tju_tcp_t *sock)
@@ -504,15 +503,16 @@ int tju_close(tju_tcp_t *sock)
         pthread_mutex_lock(&(sock->state_lock));
         sock->state = FIN_WAIT_1;
         pthread_mutex_unlock(&(sock->state_lock));
-
+		
         while (sock->state != TIME_WAIT)
             // printf("sock state -> %s", STATE_TO_STRING(sock->state));
-            ;
-        sleep(2);
+        ;
+		sleep(2);
+		
+		pthread_mutex_lock(&(sock->state_lock));
+		sock->state = CLOSED;
+		pthread_mutex_unlock(&(sock->state_lock));
 
-        pthread_mutex_lock(&(sock->state_lock));
-        sock->state = CLOSED;
-        pthread_mutex_unlock(&(sock->state_lock));
     }
     else if (sock->state == CLOSE_WAIT)
     {
@@ -520,6 +520,7 @@ int tju_close(tju_tcp_t *sock)
         sock->state = LAST_ACK;
         pthread_mutex_unlock(&(sock->state_lock));
     }
+
 
     while (sock->state != CLOSED)
         ;
