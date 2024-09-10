@@ -15,6 +15,9 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 // ip修改在这里
 #define SERVER_IP "172.17.0.3" // 3 6
