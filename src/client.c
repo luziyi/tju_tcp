@@ -1,56 +1,82 @@
 #include "tju_tcp.h"
 #include <string.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
+#define MIN_LEN 1000
+#define EACHSIZE 10 * MIN_LEN
+#define MAXSIZE 50 * MIN_LEN *MIN_LEN
+
+int t_times = 5000;
+
+void sleep_no_wake(int sec)
+{
+	do
+	{
+		sec = sleep(sec);
+	} while (sec > 0);
+}
 
 int main(int argc, char **argv)
 {
-    // 开启仿真环境
-    startSimulation();
+	// 开启仿真环境
+	startSimulation();
 
-    tju_tcp_t *my_socket = tju_socket();
-    _info_("client state %s", STATE_TO_STRING(my_socket->state));
+	tju_tcp_t *my_socket = tju_socket();
 
-    tju_sock_addr target_addr;
-    target_addr.ip = inet_network(SERVER_IP);
-    target_addr.port = 1234;
+	tju_sock_addr target_addr;
+	target_addr.ip = inet_network(SERVER_IP);
+	target_addr.port = 1234;
 
-    tju_connect(my_socket, target_addr);
-    _info_("client state %s", STATE_TO_STRING(my_socket->state));
-    uint32_t conn_ip;
-    uint16_t conn_port;
+	tju_connect(my_socket, target_addr);
 
-    conn_ip = my_socket->established_local_addr.ip;
-    conn_port = my_socket->established_local_addr.port;
-    _info_("client established_local_addr ip:%s port:%d", intToIp(conn_ip), conn_port);
+	sleep_no_wake(8);
 
-    conn_ip = my_socket->established_remote_addr.ip;
-    conn_port = my_socket->established_remote_addr.port;
-    _info_("client established_remote_addr ip:%s port:%d", intToIp(conn_ip), conn_port);
+	int fd = open("./test/rdt_send_file.txt", O_RDWR);
+	if (-1 == fd)
+	{
+		return 1;
+	}
+	struct stat st;
+	fstat(fd, &st);
+	char *file_buf = (char *)malloc(sizeof(char) * st.st_size);
+	read(fd, (void *)file_buf, st.st_size);
+	close(fd);
 
-    sleep(3);
+	for (int i = 0; i < t_times; i++)
+	{
+		char *buf = malloc(EACHSIZE);
+		memset(buf, 0, EACHSIZE);
+		if (i < 10)
+		{
+			sprintf(buf, "START####%d#", i);
+		}
+		else if (i < 100)
+		{
+			sprintf(buf, "START###%d#", i);
+		}
+		else if (i < 1000)
+		{
+			sprintf(buf, "START##%d#", i);
+		}
+		else if (i < 10000)
+		{
+			sprintf(buf, "START#%d#", i);
+		}
 
-    tju_send(my_socket, "hello world", 12);
-    tju_send(my_socket, "hello tju", 10);
+		strcat(buf, file_buf);
+		tju_send(my_socket, buf, EACHSIZE);
+		free(buf);
+	}
 
-    char buf[2021];
-    tju_recv(my_socket, (void *)buf, 12);
-    _msg_("recv: %s", buf);
+	free(file_buf);
 
-    tju_recv(my_socket, (void *)buf, 10);
-    _msg_("recv: %s", buf);
+	sleep_no_wake(100);
 
-    sleep(2);
-
-    tju_send(my_socket, "hello world", 12);
-    tju_send(my_socket, "hello tju", 10);
-
-    tju_recv(my_socket, (void *)buf, 12);
-    _msg_("recv: %s", buf);
-
-    tju_recv(my_socket, (void *)buf, 10);
-    _msg_("recv: %s", buf);
-
-    tju_close(my_socket);
-
-    _debug_("client CLOSED");
-    return EXIT_SUCCESS;
+	return EXIT_SUCCESS;
 }

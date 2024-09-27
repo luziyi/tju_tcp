@@ -1,6 +1,7 @@
 #include "tju_tcp.h"
 #include <string.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 
 #define MIN_LEN 1000
 #define EACHSIZE 10*MIN_LEN
@@ -36,6 +37,7 @@ int main(int argc, char **argv) {
     struct stat st;
     fstat(fd, &st);
     char* file_buf  = (char *)malloc(sizeof(char)*st.st_size);
+	printf("file size: %ld\n", st.st_size);
     read(fd, (void *)file_buf, st.st_size );
     close(fd);
 
